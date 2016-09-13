@@ -15,10 +15,6 @@ namespace Scada.Comm.Devices
 		private IMqttTransport Transport;
 		private IMqttPersistence Persistence;
 
-		private int Keepalive;
-		private int LastRead;
-		private int LastWrite;
-
 		public bool IsSessionPresent { get; private set; }
 
 		public bool IsPublishing { get; private set; }
@@ -108,7 +104,6 @@ namespace Scada.Comm.Devices
 			if (packet.PacketId == 0) {
 				packet.PacketId = this.GetNextPacketId ();
 			}
-
 			Send (packet);
 		}
 
@@ -138,15 +133,16 @@ namespace Scada.Comm.Devices
 		private void ReceiveConnack ()
 		{
 			PacketBase packet = Transport.Read ();
-			this.LastRead = Environment.TickCount;
-
 			ConnackPacket connack = packet as ConnackPacket;
 
 			if (packet == null) {
+				WriteToLog (Localization.UseRussian ? String.Format ("Первый принимаемый пакет должен быть Connack, но получили {0}", packet.GetType ().Name) : 
+													String.Format ("First received message should be Connack, but {0} received instead", packet.GetType ().Name));
 				throw new MqttProtocolException (String.Format ("First received message should be Connack, but {0} received instead", packet.GetType ().Name));
 			}
 
 			if (connack.ReturnCode != ConnackReturnCode.Accepted) {
+				WriteToLog (Localization.UseRussian ? "Соединение не разрешено брокером" : "The connection was not accepted");
 				throw new MqttConnectException ("The connection was not accepted", connack.ReturnCode);
 			}
 
@@ -157,11 +153,10 @@ namespace Scada.Comm.Devices
 		private void Send (PacketBase packet)
 		{
 			if (Transport.IsClosed) {
+				WriteToLog (Localization.UseRussian ? "Попытка отправить пакет в закрытом состоянии Transport" : "Tried to send packet while closed");
 				throw new MqttClientException ("Tried to send packet while closed");
 			}
 			Transport.Write (packet);
-			LastWrite = Environment.TickCount;
-
 		}
 
 		public ushort GetNextPacketId ()
@@ -181,8 +176,6 @@ namespace Scada.Comm.Devices
 		private void ReceivePacket ()
 		{
 			PacketBase packet = Transport.Read ();
-			LastRead = Environment.TickCount;
-
 			HandleReceivedPacket (packet);
 		}
 
@@ -213,6 +206,7 @@ namespace Scada.Comm.Devices
 			case PingrespPacket.PacketTypeCode:
 				break;
 			default:
+				WriteToLog (Localization.UseRussian ? String.Format ("Не возможно принять пакет типа {0}", packet.GetType ().Name) : String.Format ("Cannot receive message of type {0}", packet.GetType ().Name));
 				throw new MqttProtocolException (String.Format ("Cannot receive message of type {0}", packet.GetType ().Name));
 			}
 		}
@@ -328,6 +322,7 @@ namespace Scada.Comm.Devices
 			Send (new PingreqPacket ());
 		}
 
+
 		public override void OnAddedToCommLine ()
 		{
 			List<TagGroup> tagGroups = new List<TagGroup> ();
@@ -335,7 +330,6 @@ namespace Scada.Comm.Devices
 
 			XmlDocument xmlDoc = new XmlDocument ();
 			string filename = ReqParams.CmdLine.Trim ();
-
 			xmlDoc.Load (AppDirs.ConfigDir + filename);
 			XmlNode elemGroupsNode = xmlDoc.DocumentElement.SelectSingleNode ("ElemGroup");
 			XmlNode MQTTSettings = xmlDoc.DocumentElement.SelectSingleNode ("MqttParams");
@@ -374,14 +368,14 @@ namespace Scada.Comm.Devices
 			ReceiveConnack ();
 			ResumeOutgoingFlows ();
 			Subscribe (sp);
-			WriteToLog ("Линия добавлена");
 		}
+
 
 		public override void OnCommLineTerminate ()
 		{
 			Send (new DisconnectPacket ());
 			Transport.Close ();
-			WriteToLog ("Отключаемся от mqtt");
+			WriteToLog (Localization.UseRussian ? "Отключение от MQTT брокера" : "Disconnect from MQTT broker");
 		}
 	}
 }
