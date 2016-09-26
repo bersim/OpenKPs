@@ -58,7 +58,7 @@ namespace Scada.Comm.Devices
 			return MqttPTs;
 		}
 
-		public void Disconnect ()
+		public void Disconn ()
 		{
 			rsrv.Disconnect ();
 		}

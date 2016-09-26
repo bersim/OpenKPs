@@ -417,7 +417,7 @@ namespace Scada.Comm.Devices
 
 		public override void OnCommLineTerminate ()
 		{
-			RSrv.Disconnect ();
+			RSrv.Disconn ();
 			Send (new DisconnectPacket ());
 			Transport.Close ();
 			WriteToLog (Localization.UseRussian ? "Отключение от MQTT брокера" : "Disconnect from MQTT broker");
