@@ -362,6 +362,7 @@ namespace Scada.Comm.Devices
 			};
 
 			RSrv = new RapSrvEx (cs);
+			RSrv.Conn ();
 			MQTTPTs = new List<MQTTPubTopic> ();
 
 			foreach (XmlElement MqttPTCnf in MQTTPubTopics) {

@@ -41,7 +41,7 @@ namespace Scada.Comm.Devices
 
 		public List<MQTTPubTopic>  GetValues (List<MQTTPubTopic> MqttPTs)
 		{
-			cn = rsrv.Connect ();
+			
 			if (cn) {
 				SrezTableLight stl = new SrezTableLight ();
 				IsCurr = rsrv.ReceiveSrezTable ("current.dat", stl);
@@ -56,6 +56,11 @@ namespace Scada.Comm.Devices
 				}
 			}
 			return MqttPTs;
+		}
+
+		public void Conn()
+		{
+			cn = rsrv.Connect ();
 		}
 
 		public void Disconn ()
