@@ -7,6 +7,7 @@ using System.Xml;
 using Scada.Data;
 using StriderMqtt;
 
+using Scada.Client;
 
 namespace Scada.Comm.Devices
 {
@@ -15,13 +16,17 @@ namespace Scada.Comm.Devices
 		private IMqttTransport Transport;
 		private IMqttPersistence Persistence;
 
-		public bool IsSessionPresent { get; private set; }
+		private bool IsSessionPresent { get; set; }
 
-		public bool IsPublishing { get; private set; }
+		private bool IsPublishing { get; set; }
 
-		public bool InterruptLoop { get; set; }
+		private bool InterruptLoop { get; set; }
 
 		private MqttConnectionArgs connArgs;
+
+		private List<MQTTPubTopic> MQTTPTs;
+
+		private RapSrvEx RSrv;
 
 		public KpMQTTLogic (int number) : base (number)
 		{
@@ -54,7 +59,7 @@ namespace Scada.Comm.Devices
 			Persistence.LastOutgoingPacketId = flow.PacketId;
 		}
 
-		public ushort Publish (PublishPacket packet)
+		private ushort Publish (PublishPacket packet)
 		{
 
 			if (packet.QosLevel != MqttQos.AtMostOnce) {
@@ -90,7 +95,7 @@ namespace Scada.Comm.Devices
 			}
 		}
 
-		public void Subscribe (SubscribePacket packet)
+		private void Subscribe (SubscribePacket packet)
 		{
 			if (packet.PacketId == 0) {
 				packet.PacketId = this.GetNextPacketId ();
@@ -99,7 +104,7 @@ namespace Scada.Comm.Devices
 			Send (packet);
 		}
 
-		public void Unsubscribe (UnsubscribePacket packet)
+		private void Unsubscribe (UnsubscribePacket packet)
 		{
 			if (packet.PacketId == 0) {
 				packet.PacketId = this.GetNextPacketId ();
@@ -159,7 +164,7 @@ namespace Scada.Comm.Devices
 			Transport.Write (packet);
 		}
 
-		public ushort GetNextPacketId ()
+		private ushort GetNextPacketId ()
 		{
 			ushort x = Persistence.LastOutgoingPacketId;
 			if (x == Packet.MaxPacketId) {
@@ -320,6 +325,18 @@ namespace Scada.Comm.Devices
 			ReceivePacket ();
 			Thread.Sleep (ReqParams.Delay);
 			Send (new PingreqPacket ());
+			MQTTPTs = RSrv.GetValues (MQTTPTs);
+			Send (new PingreqPacket ());
+			foreach (MQTTPubTopic mqtttp in MQTTPTs) {
+				Publish (new PublishPacket () {
+					Topic = mqtttp.TopicName,
+					QosLevel = mqtttp.QosLevels,
+					Message = Encoding.UTF8.GetBytes (mqtttp.Value.ToString ())
+				});
+			}
+
+			Send (new PingreqPacket ());
+
 		}
 
 
@@ -331,17 +348,40 @@ namespace Scada.Comm.Devices
 			XmlDocument xmlDoc = new XmlDocument ();
 			string filename = ReqParams.CmdLine.Trim ();
 			xmlDoc.Load (AppDirs.ConfigDir + filename);
-			XmlNode elemGroupsNode = xmlDoc.DocumentElement.SelectSingleNode ("ElemGroup");
+			XmlNode MQTTSubTopics = xmlDoc.DocumentElement.SelectSingleNode ("MqttSubTopics");
+			XmlNode MQTTPubTopics = xmlDoc.DocumentElement.SelectSingleNode ("MqttPubTopics");
+			XmlNode RapSrvCnf = xmlDoc.DocumentElement.SelectSingleNode ("RapSrvCnf");
 			XmlNode MQTTSettings = xmlDoc.DocumentElement.SelectSingleNode ("MqttParams");
+
+
+			CommSettings cs = new CommSettings () {
+				ServerHost = RapSrvCnf.Attributes.GetNamedItem ("ServerHost").Value,
+				ServerPort = Convert.ToInt32 (RapSrvCnf.Attributes.GetNamedItem ("ServerPort").Value),
+				ServerUser = RapSrvCnf.Attributes.GetNamedItem ("ServerUser").Value,
+				ServerPwd = RapSrvCnf.Attributes.GetNamedItem ("ServerPwd").Value
+			};
+
+			RSrv = new RapSrvEx (cs);
+			MQTTPTs = new List<MQTTPubTopic> ();
+
+			foreach (XmlElement MqttPTCnf in MQTTPubTopics) {
+				MQTTPubTopic MqttPT = new MQTTPubTopic () {
+					NumCnl = Convert.ToInt32 (MqttPTCnf.GetAttribute ("NumCnl")),
+					QosLevels = (MqttQos)Convert.ToByte (MqttPTCnf.GetAttribute ("QosLevel")),
+					TopicName = MqttPTCnf.GetAttribute ("TopicName"),
+					Value = 0
+				};
+				MQTTPTs.Add (MqttPT);
+			}
 
 			SubscribePacket sp = new SubscribePacket ();
 			int i = 0;
-			sp.Topics = new string[elemGroupsNode.ChildNodes.Count];
-			sp.QosLevels = new MqttQos[elemGroupsNode.ChildNodes.Count];
+			sp.Topics = new string[MQTTSubTopics.ChildNodes.Count];
+			sp.QosLevels = new MqttQos[MQTTSubTopics.ChildNodes.Count];
 		
-			foreach (XmlElement elemGroupElem in elemGroupsNode.ChildNodes) {
+			foreach (XmlElement elemGroupElem in MQTTSubTopics.ChildNodes) {
 				sp.Topics [i] = elemGroupElem.GetAttribute ("TopicName");
-				sp.QosLevels [i] = MqttQos.AtMostOnce;
+				sp.QosLevels [i] = (MqttQos)Convert.ToByte (elemGroupElem.GetAttribute ("QosLevel"));
 				KPTag KPt = new KPTag () {
 					Signal = i + 1,
 					Name = sp.Topics [i],
@@ -351,6 +391,7 @@ namespace Scada.Comm.Devices
 				i++;
 			}
 
+
 			tagGroups.Add (tagGroup);
 			InitKPTags (tagGroups);
 
@@ -358,6 +399,9 @@ namespace Scada.Comm.Devices
 			connArgs.ClientId = MQTTSettings.Attributes.GetNamedItem ("ClientID").Value;
 			connArgs.Hostname = MQTTSettings.Attributes.GetNamedItem ("Hostname").Value;
 			connArgs.Port = Convert.ToInt32 (MQTTSettings.Attributes.GetNamedItem ("Port").Value);
+			connArgs.Username = MQTTSettings.Attributes.GetNamedItem ("UserName").Value;
+			connArgs.Password = MQTTSettings.Attributes.GetNamedItem ("Password").Value;
+
 
 			this.Persistence = new InMemoryPersistence ();
 			Transport = new TcpTransport (connArgs.Hostname, connArgs.Port);
@@ -373,6 +417,7 @@ namespace Scada.Comm.Devices
 
 		public override void OnCommLineTerminate ()
 		{
+			RSrv.Disconnect ();
 			Send (new DisconnectPacket ());
 			Transport.Close ();
 			WriteToLog (Localization.UseRussian ? "Отключение от MQTT брокера" : "Disconnect from MQTT broker");

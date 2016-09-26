@@ -37,6 +37,7 @@ namespace StriderMqtt
 		private int inLoop = 0;
 
 		#region events
+
 		/// <summary>
 		/// Occurs when a Publish packet is received from broker.
 		/// </summary>
@@ -80,86 +81,72 @@ namespace StriderMqtt
 		/// Occurs when a Unsuback packet is received from broker.
 		/// </summary>
 		public event EventHandler<EventArgs> UnsubackReceived;
+
 		#endregion
 
 
-		bool ReadWaitExpired
-		{
-			get
-			{
-				if (Keepalive > 0)
-				{
+		bool ReadWaitExpired {
+			get {
+				if (Keepalive > 0) {
 					return Environment.TickCount - LastRead > (Keepalive * 1.5);
-				}
-				else
-				{
+				} else {
 					return false;
 				}
 			}
 		}
 
-		bool WriteWaitExpired
-		{
-			get
-			{
-				if (Keepalive > 0)
-				{
+		bool WriteWaitExpired {
+			get {
+				if (Keepalive > 0) {
 					return Environment.TickCount - LastWrite > Keepalive;
-				}
-				else
-				{
+				} else {
 					return false;
 				}
 			}
 		}
 
 
-		public MqttConnection(MqttConnectionArgs args, IMqttPersistence persistence=null)
+		public MqttConnection (MqttConnectionArgs args, IMqttPersistence persistence = null)
 		{
-			if (args.Keepalive.TotalSeconds < 0 || args.Keepalive.TotalSeconds > ushort.MaxValue)
-			{
-				throw new ArgumentException("Keepalive should be between 0 seconds and ushort.MaxValue (18 hours)");
+			if (args.Keepalive.TotalSeconds < 0 || args.Keepalive.TotalSeconds > ushort.MaxValue) {
+				throw new ArgumentException ("Keepalive should be between 0 seconds and ushort.MaxValue (18 hours)");
 			}
 
-			this.Persistence = persistence ?? new InMemoryPersistence();
+			this.Persistence = persistence ?? new InMemoryPersistence ();
 
 			this.Keepalive = (int)args.Keepalive.TotalMilliseconds; // converts to milliseconds
 			this.IsPublishing = false;
 
-			InitTransport(args);
-			Send(MakeConnectMessage(args));
-			ReceiveConnack();
+			InitTransport (args);
+			Send (MakeConnectMessage (args));
+			ReceiveConnack ();
 
-			ResumeOutgoingFlows();
+			ResumeOutgoingFlows ();
 		}
 
-		private void InitTransport(MqttConnectionArgs args)
+		private void InitTransport (MqttConnectionArgs args)
 		{
-			if (args.Secure)
-			{
+			if (args.Secure) {
 				
-				Transport = new TlsTransport(args.Hostname, args.Port);
-			}
-			else
-			{
-				Transport = new TcpTransport(args.Hostname, args.Port);
+				Transport = new TlsTransport (args.Hostname, args.Port);
+			} else {
+				Transport = new TcpTransport (args.Hostname, args.Port);
 			}
 
 			Transport.Version = args.Version;
-			Transport.SetTimeouts(args.ReadTimeout, args.WriteTimeout);
+			Transport.SetTimeouts (args.ReadTimeout, args.WriteTimeout);
 		}
 
-		private ConnectPacket MakeConnectMessage(MqttConnectionArgs args)
+		private ConnectPacket MakeConnectMessage (MqttConnectionArgs args)
 		{
-			var conn = new ConnectPacket();
+			var conn = new ConnectPacket ();
 			conn.ProtocolVersion = args.Version;
 
 			conn.ClientId = args.ClientId;
 			conn.Username = args.Username;
 			conn.Password = args.Password;
 
-			if (args.WillMessage != null)
-			{
+			if (args.WillMessage != null) {
 				conn.WillFlag = true;
 				conn.WillTopic = args.WillMessage.Topic;
 				conn.WillMessage = args.WillMessage.Message;
@@ -173,43 +160,39 @@ namespace StriderMqtt
 			return conn;
 		}
 
-		private void ReceiveConnack()
+		private void ReceiveConnack ()
 		{
-			PacketBase packet = Transport.Read();
+			PacketBase packet = Transport.Read ();
 			this.LastRead = Environment.TickCount;
 
 			var connack = packet as ConnackPacket;
 
-			if (packet == null)
-			{
-				throw new MqttProtocolException(String.Format("First received message should be Connack, but {0} received instead", packet.GetType().Name));
+			if (packet == null) {
+				throw new MqttProtocolException (String.Format ("First received message should be Connack, but {0} received instead", packet.GetType ().Name));
 			}
 
-			if (connack.ReturnCode != ConnackReturnCode.Accepted)
-			{
-				throw new MqttConnectException("The connection was not accepted", connack.ReturnCode);
+			if (connack.ReturnCode != ConnackReturnCode.Accepted) {
+				throw new MqttConnectException ("The connection was not accepted", connack.ReturnCode);
 			}
 
 			this.IsSessionPresent = connack.SessionPresent;
 		}
 
-		private void ResumeOutgoingFlows()
+		private void ResumeOutgoingFlows ()
 		{
 			// tries to redeliver if that's the case
-			foreach (var flow in Persistence.GetPendingOutgoingFlows())
-			{
-				Resume(flow);
+			foreach (var flow in Persistence.GetPendingOutgoingFlows()) {
+				Resume (flow);
 			}
 		}
 
 		// sends a publish with dup flag in the case of a publish redelivery
 		// or a pubrel in the case of qos2 message that we know was received by the broker
-		private void Resume(OutgoingFlow flow)
+		private void Resume (OutgoingFlow flow)
 		{
 			if (flow.Qos == MqttQos.AtLeastOnce ||
-			    (flow.Qos == MqttQos.ExactlyOnce && !flow.Received))
-			{
-				var publish = new PublishPacket() {
+			    (flow.Qos == MqttQos.ExactlyOnce && !flow.Received)) {
+				var publish = new PublishPacket () {
 					PacketId = flow.PacketId,
 					QosLevel = flow.Qos,
 					Topic = flow.Topic,
@@ -217,11 +200,9 @@ namespace StriderMqtt
 					DupFlag = true
 				};
 
-				Publish(publish);
-			}
-			else if (flow.Qos == MqttQos.ExactlyOnce && flow.Received)
-			{
-				Pubrel(flow.PacketId);
+				Publish (publish);
+			} else if (flow.Qos == MqttQos.ExactlyOnce && flow.Received) {
+				Pubrel (flow.PacketId);
 			}
 
 			Persistence.LastOutgoingPacketId = flow.PacketId;
@@ -232,18 +213,15 @@ namespace StriderMqtt
 		/// Publishes the given packet to the broker.
 		/// </summary>
 		/// <param name="packet">Packet.</param>
-		public ushort Publish(PublishPacket packet)
+		public ushort Publish (PublishPacket packet)
 		{
-			if (packet.QosLevel != MqttQos.AtMostOnce)
-			{
-				if (packet.PacketId == 0)
-				{
-					packet.PacketId = this.GetNextPacketId();
+			if (packet.QosLevel != MqttQos.AtMostOnce) {
+				if (packet.PacketId == 0) {
+					packet.PacketId = this.GetNextPacketId ();
 				}
 
 				// persistence needed only on qos levels 1 and 2
-				Persistence.RegisterOutgoingFlow(new OutgoingFlow()
-                {
+				Persistence.RegisterOutgoingFlow (new OutgoingFlow () {
 					PacketId = packet.PacketId,
 					Topic = packet.Topic,
 					Qos = packet.QosLevel,
@@ -251,15 +229,12 @@ namespace StriderMqtt
 				});
 			}
 
-			try
-			{
+			try {
 				IsPublishing = true;
-				Send(packet);
+				Send (packet);
 
 				return packet.PacketId;
-			}
-			catch
-			{
+			} catch {
 				IsPublishing = false;
 				throw;
 			}
@@ -274,63 +249,54 @@ namespace StriderMqtt
 		/// so there is no need to explicitly call the `Pubrel` method in this case.
 		/// </remarks>
 		/// <param name="packetId">Packet identifier.</param>
-		private void Pubrel(ushort packetId)
+		private void Pubrel (ushort packetId)
 		{
-			try
-			{
+			try {
 				IsPublishing = true;
-				Send(new PubrelPacket() { PacketId = packetId });
-			}
-			catch
-			{
+				Send (new PubrelPacket () { PacketId = packetId });
+			} catch {
 				IsPublishing = false;
 				throw;
 			}
 		}
 
 
-		public void Subscribe(SubscribePacket packet)
+		public void Subscribe (SubscribePacket packet)
 		{
-			if (packet.PacketId == 0)
-			{
-				packet.PacketId = this.GetNextPacketId();
+			if (packet.PacketId == 0) {
+				packet.PacketId = this.GetNextPacketId ();
 			}
 
-			Send(packet);
+			Send (packet);
 		}
 
-		public void Unsubscribe(UnsubscribePacket packet)
+		public void Unsubscribe (UnsubscribePacket packet)
 		{
-			if (packet.PacketId == 0)
-			{
-				packet.PacketId = this.GetNextPacketId();
+			if (packet.PacketId == 0) {
+				packet.PacketId = this.GetNextPacketId ();
 			}
 
-			Send(packet);
+			Send (packet);
 		}
 
 
-		private void Send(PacketBase packet)
+		private void Send (PacketBase packet)
 		{
-			if (Transport.IsClosed)
-			{
-				throw new MqttClientException("Tried to send packet while closed");
+			if (Transport.IsClosed) {
+				throw new MqttClientException ("Tried to send packet while closed");
 			}
 
-			Transport.Write(packet);
+			Transport.Write (packet);
 			LastWrite = Environment.TickCount;
 		}
 
-		public ushort GetNextPacketId()
+		public ushort GetNextPacketId ()
 		{
 			ushort x = Persistence.LastOutgoingPacketId;
-			if (x == Packet.MaxPacketId)
-			{
+			if (x == Packet.MaxPacketId) {
 				Persistence.LastOutgoingPacketId = 1;
 				return 1;
-			}
-			else
-			{
+			} else {
 				x += 1;
 				Persistence.LastOutgoingPacketId = x;
 				return x;
@@ -347,50 +313,37 @@ namespace StriderMqtt
 		/// </summary>
 		/// <param name="readLimit">Read limit in milliseconds.</param>
 		/// <returns>Returns true if is connected, false otherwise.</returns>
-		public bool Loop(int readLimit)
+		public bool Loop (int readLimit)
 		{
-			if (readLimit < 0)
-			{
-				throw new ArgumentException("Poll limit should be positive");
+			if (readLimit < 0) {
+				throw new ArgumentException ("Poll limit should be positive");
 			}
 
 			// Loop shouldn't be called concurrently or recursivelly
-			if(Interlocked.CompareExchange(ref inLoop, 1, 0) == 1)
-			{
-				throw new InvalidProgramException("Loop is already running");
+			if (Interlocked.CompareExchange (ref inLoop, 1, 0) == 1) {
+				throw new InvalidProgramException ("Loop is already running");
 			}
 
-			try
-			{
+			try {
 				int readThreshold = Environment.TickCount + readLimit;
 				int pollTime;
 
 				InterruptLoop = false;
 
-				while ((pollTime = readThreshold - Environment.TickCount) > 0 && !InterruptLoop)
-				{
-					if (Transport.IsClosed)
-					{
+				while ((pollTime = readThreshold - Environment.TickCount) > 0 && !InterruptLoop) {
+					if (Transport.IsClosed) {
 						return false;
-					}
-					else if (Transport.Poll(pollTime))
-					{
-						ReceivePacket();
-					}
-					else if (WriteWaitExpired)
-					{
-						Send(new PingreqPacket());
-					}
-					else if (ReadWaitExpired)
-					{
-						throw new MqttTimeoutException();
+					} else if (Transport.Poll (pollTime)) {
+						ReceivePacket ();
+					} else if (WriteWaitExpired) {
+						Send (new PingreqPacket ());
+					} else if (ReadWaitExpired) {
+						throw new MqttTimeoutException ();
 					}
 				}
 
 				return !Transport.IsClosed;
-			}
-			finally
-			{
+			} finally {
 				inLoop = 0;
 			}
 		}
@@ -401,166 +354,151 @@ namespace StriderMqtt
 		/// Throws MqttTimeoutException if keepalive period expires.
 		/// </summary>
 		/// <param name="readLimit">Poll limit TimeSpan.</param>
-		public bool Loop(TimeSpan readLimit)
+		public bool Loop (TimeSpan readLimit)
 		{
-			if (readLimit.TotalMilliseconds > Int32.MaxValue)
-			{
-				throw new ArgumentException("Read limit total milliseconds should be less than Int32 max value");
+			if (readLimit.TotalMilliseconds > Int32.MaxValue) {
+				throw new ArgumentException ("Read limit total milliseconds should be less than Int32 max value");
 			}
 
-			return Loop((int)readLimit.TotalMilliseconds);
+			return Loop ((int)readLimit.TotalMilliseconds);
 		}
 
 		/// <summary>
 		/// Tries to receive packets, reading for `Keepalive` duration
 		/// </summary>
-		public bool Loop()
+		public bool Loop ()
 		{
-			return Loop(Keepalive);
+			return Loop (Keepalive);
 		}
 
 
-		private void ReceivePacket()
+		private void ReceivePacket ()
 		{
-			PacketBase packet = Transport.Read();
+			PacketBase packet = Transport.Read ();
 			LastRead = Environment.TickCount;
 
-			HandleReceivedPacket(packet);
+			HandleReceivedPacket (packet);
 		}
 
-		void HandleReceivedPacket(PacketBase packet)
+		void HandleReceivedPacket (PacketBase packet)
 		{
-			switch (packet.PacketType)
-			{
-				case PublishPacket.PacketTypeCode:
-					OnPublishReceived(packet as PublishPacket);
-					break;
-				case PubackPacket.PacketTypeCode:
-					OnPubackReceived(packet as PubackPacket);
-					break;
-				case PubrecPacket.PacketTypeCode:
-					OnPubrecReceived(packet as PubrecPacket);
-					break;
-				case PubrelPacket.PacketTypeCode:
-					OnPubrelReceived(packet as PubrelPacket);
-					break;
-				case PubcompPacket.PacketTypeCode:
-					OnPubcompReceived(packet as PubcompPacket);
-					break;
-				case SubackPacket.PacketTypeCode:
-					OnSubackReceived(packet as SubackPacket);
-					break;
-				case UnsubackPacket.PacketTypeCode:
-					OnUnsubackReceived(packet as UnsubackPacket);
-					break;
-				case PingrespPacket.PacketTypeCode:
-					break;
-				default:
-					throw new MqttProtocolException(String.Format("Cannot receive message of type {0}", packet.GetType().Name));
+			switch (packet.PacketType) {
+			case PublishPacket.PacketTypeCode:
+				OnPublishReceived (packet as PublishPacket);
+				break;
+			case PubackPacket.PacketTypeCode:
+				OnPubackReceived (packet as PubackPacket);
+				break;
+			case PubrecPacket.PacketTypeCode:
+				OnPubrecReceived (packet as PubrecPacket);
+				break;
+			case PubrelPacket.PacketTypeCode:
+				OnPubrelReceived (packet as PubrelPacket);
+				break;
+			case PubcompPacket.PacketTypeCode:
+				OnPubcompReceived (packet as PubcompPacket);
+				break;
+			case SubackPacket.PacketTypeCode:
+				OnSubackReceived (packet as SubackPacket);
+				break;
+			case UnsubackPacket.PacketTypeCode:
+				OnUnsubackReceived (packet as UnsubackPacket);
+				break;
+			case PingrespPacket.PacketTypeCode:
+				break;
+			default:
+				throw new MqttProtocolException (String.Format ("Cannot receive message of type {0}", packet.GetType ().Name));
 			}
 		}
 
 
 		// -- incoming publish events --
 
-		void OnPublishReceived(PublishPacket packet)
+		void OnPublishReceived (PublishPacket packet)
 		{
-			if (packet.QosLevel == MqttQos.ExactlyOnce)
-			{
-				OnQos2PublishReceived(packet);
-			}
-			else
-			{
-				if (PublishReceived != null)
-				{
-					PublishReceived(this, new PublishReceivedEventArgs(packet));
+			if (packet.QosLevel == MqttQos.ExactlyOnce) {
+				OnQos2PublishReceived (packet);
+			} else {
+				if (PublishReceived != null) {
+					PublishReceived (this, new PublishReceivedEventArgs (packet));
 				}
 
-				if (packet.QosLevel == MqttQos.AtLeastOnce)
-				{
-					Send(new PubackPacket() { PacketId = packet.PacketId });
+				if (packet.QosLevel == MqttQos.AtLeastOnce) {
+					Send (new PubackPacket () { PacketId = packet.PacketId });
 				}
 			}
 		}
 
-		void OnQos2PublishReceived(PublishPacket packet)
+		void OnQos2PublishReceived (PublishPacket packet)
 		{
-			if (!Persistence.IsIncomingFlowRegistered(packet.PacketId))
-			{
-				if (PublishReceived != null)
-				{
-					PublishReceived(this, new PublishReceivedEventArgs(packet));
+			if (!Persistence.IsIncomingFlowRegistered (packet.PacketId)) {
+				if (PublishReceived != null) {
+					PublishReceived (this, new PublishReceivedEventArgs (packet));
 				}
 
 				// Register the incoming packetId, so duplicate messages can be filtered.
 				// This is done after "ProcessIncomingPublish" because we can't assume the
 				// mesage was received in the case that method throws an exception.
-				Persistence.RegisterIncomingFlow(packet.PacketId);
+				Persistence.RegisterIncomingFlow (packet.PacketId);
 
 				// the ideal would be to run `PubishReceived` and `Persistence.RegisterIncomingFlow`
 				// in a single transaction (either both or neither succeeds).
 			}
 
-			Send(new PubrecPacket() { PacketId = packet.PacketId });
+			Send (new PubrecPacket () { PacketId = packet.PacketId });
 		}
 
-		void OnPubrelReceived(PubrelPacket packet)
+		void OnPubrelReceived (PubrelPacket packet)
 		{
-			if (PubrelReceived != null)
-			{
-				PubrelReceived(this, new IdentifiedPacketEventArgs(packet));
+			if (PubrelReceived != null) {
+				PubrelReceived (this, new IdentifiedPacketEventArgs (packet));
 			}
 
-			Persistence.ReleaseIncomingFlow(packet.PacketId);
+			Persistence.ReleaseIncomingFlow (packet.PacketId);
 
-			Send(new PubcompPacket() { PacketId = packet.PacketId });
+			Send (new PubcompPacket () { PacketId = packet.PacketId });
 		}
 
 
 		// -- outgoing publish events --
 
-		void OnPubackReceived(PubackPacket packet)
+		void OnPubackReceived (PubackPacket packet)
 		{
-			if (PubackReceived != null)
-			{
-				PubackReceived(this, new IdentifiedPacketEventArgs(packet));
+			if (PubackReceived != null) {
+				PubackReceived (this, new IdentifiedPacketEventArgs (packet));
 			}
 
-			if (PublishSent != null)
-			{
-				PublishSent(this, new IdentifiedPacketEventArgs(packet));
+			if (PublishSent != null) {
+				PublishSent (this, new IdentifiedPacketEventArgs (packet));
 			}
 
-			Persistence.SetOutgoingFlowCompleted(packet.PacketId);
+			Persistence.SetOutgoingFlowCompleted (packet.PacketId);
 
 			this.IsPublishing = false;
 		}
 
-		void OnPubrecReceived(PubrecPacket packet)
+		void OnPubrecReceived (PubrecPacket packet)
 		{
-			if (PubrecReceived != null)
-			{
-				PubrecReceived(this, new IdentifiedPacketEventArgs(packet));
+			if (PubrecReceived != null) {
+				PubrecReceived (this, new IdentifiedPacketEventArgs (packet));
 			}
 
-			Persistence.SetOutgoingFlowReceived(packet.PacketId);
+			Persistence.SetOutgoingFlowReceived (packet.PacketId);
 
-			Send(new PubrelPacket() { PacketId = packet.PacketId });
+			Send (new PubrelPacket () { PacketId = packet.PacketId });
 		}
 
-		void OnPubcompReceived(PubcompPacket packet)
+		void OnPubcompReceived (PubcompPacket packet)
 		{
-			if (PubcompReceived != null)
-			{
-				PubcompReceived(this, new IdentifiedPacketEventArgs(packet));
+			if (PubcompReceived != null) {
+				PubcompReceived (this, new IdentifiedPacketEventArgs (packet));
 			}
 
-			if (PublishSent != null)
-			{
-				PublishSent(this, new IdentifiedPacketEventArgs(packet));
+			if (PublishSent != null) {
+				PublishSent (this, new IdentifiedPacketEventArgs (packet));
 			}
 
-			Persistence.SetOutgoingFlowCompleted(packet.PacketId);
+			Persistence.SetOutgoingFlowCompleted (packet.PacketId);
 
 			this.IsPublishing = false;
 		}
@@ -568,30 +506,28 @@ namespace StriderMqtt
 
 		// -- subscription events --
 
-		void OnSubackReceived(SubackPacket packet)
+		void OnSubackReceived (SubackPacket packet)
 		{
-			if (SubackReceived != null)
-			{
-				SubackReceived(this, new SubackReceivedEventArgs(packet));
+			if (SubackReceived != null) {
+				SubackReceived (this, new SubackReceivedEventArgs (packet));
 			}
 		}
 
-		void OnUnsubackReceived(UnsubackPacket packet)
+		void OnUnsubackReceived (UnsubackPacket packet)
 		{
-			if (UnsubackReceived != null)
-			{
-				UnsubackReceived(this, EventArgs.Empty);
+			if (UnsubackReceived != null) {
+				UnsubackReceived (this, EventArgs.Empty);
 			}
 		}
 
-		public void Disconnect()
+		public void Disconnect ()
 		{
-			Send(new DisconnectPacket());
+			Send (new DisconnectPacket ());
 		}
 
-		public void Dispose()
+		public void Dispose ()
 		{
-			Transport.Close();
+			Transport.Close ();
 		}
 	}
 
@@ -599,6 +535,7 @@ namespace StriderMqtt
 	public class MqttConnectionArgs
 	{
 		public string Hostname { get; set; }
+
 		public int Port { get; set; }
 
 		public bool Secure { get; set; }
@@ -606,7 +543,9 @@ namespace StriderMqtt
 		public MqttProtocolVersion Version { get; set; }
 
 		public string ClientId { get; set; }
+
 		public string Username { get; set; }
+
 		public string Password { get; set; }
 
 		public bool CleanSession { get; set; }
@@ -616,26 +555,30 @@ namespace StriderMqtt
 		public WillMessage WillMessage { get; set; }
 
 		public TimeSpan ReadTimeout { get; set; }
+
 		public TimeSpan WriteTimeout { get; set; }
 
 		public MqttConnectionArgs ()
 		{
 			this.Version = MqttProtocolVersion.V3_1_1;
-			this.Keepalive = TimeSpan.FromSeconds(60);
+			this.Keepalive = TimeSpan.FromSeconds (60);
 
 			this.Port = 1883;
 			this.CleanSession = true;
 
-			this.ReadTimeout = TimeSpan.FromSeconds(10);
-			this.WriteTimeout = TimeSpan.FromSeconds(10);
+			this.ReadTimeout = TimeSpan.FromSeconds (10);
+			this.WriteTimeout = TimeSpan.FromSeconds (10);
 		}
 	}
 
 	public class WillMessage
 	{
 		public string Topic { get; set; }
+
 		public byte[] Message { get; set; }
+
 		public MqttQos Qos { get; set; }
+
 		public bool Retain { get; set; }
 	}
 }

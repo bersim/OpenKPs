@@ -57,6 +57,7 @@
     <Compile Include="MQTTCore\PublishPackets.cs" />
     <Compile Include="MQTTCore\SubscriptionPackets.cs" />
     <Compile Include="MQTTCore\Transport.cs" />
+    <Compile Include="MQTTPubTopic.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
