@@ -322,20 +322,23 @@ namespace Scada.Comm.Devices
 		public override void Session ()
 		{
 			base.Session ();
+			WorkState = WorkStates.Normal;
+
+			Send (new PingreqPacket ());
 			ReceivePacket ();
-			Thread.Sleep (ReqParams.Delay);
-			Send (new PingreqPacket ());
 			MQTTPTs = RSrv.GetValues (MQTTPTs);
-			Send (new PingreqPacket ());
 			foreach (MQTTPubTopic mqtttp in MQTTPTs) {
+				if (!mqtttp.IsPub)
+					continue; 
 				Publish (new PublishPacket () {
 					Topic = mqtttp.TopicName,
 					QosLevel = mqtttp.QosLevels,
 					Message = Encoding.UTF8.GetBytes (mqtttp.Value.ToString ())
 				});
+				mqtttp.IsPub = false;
 			}
+			Thread.Sleep (ReqParams.Delay);
 
-			Send (new PingreqPacket ());
 
 		}
 

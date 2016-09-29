@@ -15,6 +15,10 @@ namespace Scada.Comm.Devices
 		public int NumCnl { get; set; }
 
 		public double Value { get; set; }
+
+		public bool IsPub { get; set; }
+
+
 	}
 
 
@@ -51,6 +55,8 @@ namespace Scada.Comm.Devices
 				foreach (MQTTPubTopic MqttPT in MqttPTs) {
 					found = srez.GetCnlData (MqttPT.NumCnl, out cnlData);
 					if (found) {
+						if (MqttPT.Value != cnlData.Val)
+							MqttPT.IsPub = true; 
 						MqttPT.Value = cnlData.Val;
 					}
 				}
@@ -58,7 +64,7 @@ namespace Scada.Comm.Devices
 			return MqttPTs;
 		}
 
-		public void Conn()
+		public void Conn ()
 		{
 			cn = rsrv.Connect ();
 		}
