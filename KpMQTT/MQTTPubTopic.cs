@@ -21,20 +21,13 @@ namespace Scada.Comm.Devices
 
 	}
 
-
-
 	public class RapSrvEx : ServerComm
 	{
 		public bool cn { get; set; }
 
 		public bool IsCurr { get; set; }
 
-
-
-
 		private RapSrvEx rsrv;
-
-
 
 		public RapSrvEx (CommSettings cs)
 		{
@@ -75,11 +68,6 @@ namespace Scada.Comm.Devices
 		}
 
 	}
-
-
-
-
-
 
 }
 

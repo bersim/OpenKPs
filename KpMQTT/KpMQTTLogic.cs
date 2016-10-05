@@ -316,7 +316,7 @@ namespace Scada.Comm.Devices
 
 		void OnUnsubackReceived (UnsubackPacket packet)
 		{
-
+			
 		}
 
 		public override void Session ()
@@ -338,8 +338,6 @@ namespace Scada.Comm.Devices
 				mqtttp.IsPub = false;
 			}
 			Thread.Sleep (ReqParams.Delay);
-
-
 		}
 
 
@@ -355,7 +353,6 @@ namespace Scada.Comm.Devices
 			XmlNode MQTTPubTopics = xmlDoc.DocumentElement.SelectSingleNode ("MqttPubTopics");
 			XmlNode RapSrvCnf = xmlDoc.DocumentElement.SelectSingleNode ("RapSrvCnf");
 			XmlNode MQTTSettings = xmlDoc.DocumentElement.SelectSingleNode ("MqttParams");
-
 
 			CommSettings cs = new CommSettings () {
 				ServerHost = RapSrvCnf.Attributes.GetNamedItem ("ServerHost").Value,
@@ -394,7 +391,6 @@ namespace Scada.Comm.Devices
 				tagGroup.KPTags.Add (KPt);
 				i++;
 			}
-
 
 			tagGroups.Add (tagGroup);
 			InitKPTags (tagGroups);
