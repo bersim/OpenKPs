@@ -28,6 +28,9 @@ namespace Scada.Comm.Devices
 
 		private RapSrvEx RSrv;
 
+		private SubscribePacket sp;
+
+
 		public KpMQTTLogic (int number) : base (number)
 		{
 			ConnRequired = false;
@@ -322,7 +325,26 @@ namespace Scada.Comm.Devices
 		public override void Session ()
 		{
 			base.Session ();
+
+			if (WorkState == WorkStates.Error) {
+				Transport.Close ();
+				Transport = new TcpTransport (connArgs.Hostname, connArgs.Port);
+				Transport.Version = connArgs.Version;
+				Transport.SetTimeouts (connArgs.ReadTimeout, connArgs.WriteTimeout);
+
+				Send (MakeConnectMessage (connArgs));
+				ReceiveConnack ();
+				ResumeOutgoingFlows ();
+				Subscribe (sp);
+				WorkState = WorkStates.Normal;
+				WriteToLog (Localization.UseRussian ? "Повторяем подключение с брокером MQTT" : "Retry connect in MQTT broker");
+				return;
+			}
+
+
 			WorkState = WorkStates.Normal;
+
+
 
 			Send (new PingreqPacket ());
 			ReceivePacket ();
@@ -375,7 +397,7 @@ namespace Scada.Comm.Devices
 				MQTTPTs.Add (MqttPT);
 			}
 
-			SubscribePacket sp = new SubscribePacket ();
+			sp = new SubscribePacket ();
 			int i = 0;
 			sp.Topics = new string[MQTTSubTopics.ChildNodes.Count];
 			sp.QosLevels = new MqttQos[MQTTSubTopics.ChildNodes.Count];
