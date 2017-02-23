@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using StriderMqtt;
 using Scada.Client;
-using Scada.Data;
+using Scada.Data.Tables;
 
 namespace Scada.Comm.Devices
 {

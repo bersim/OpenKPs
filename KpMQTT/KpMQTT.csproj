@@ -31,13 +31,13 @@
     <Reference Include="System" />
     <Reference Include="System.Xml" />
     <Reference Include="Log">
-      <HintPath>..\..\..\scada-4.5.7\Log\bin\Debug\Log.dll</HintPath>
-    </Reference>
-    <Reference Include="ScadaCommCommon">
-      <HintPath>..\..\..\scada-4.5.7\ScadaComm\ScadaCommCommon\bin\Debug\ScadaCommCommon.dll</HintPath>
+      <HintPath>..\..\..\RScada5\Log\bin\Debug\Log.dll</HintPath>
     </Reference>
     <Reference Include="ScadaData">
-      <HintPath>..\..\..\scada-4.5.7\ScadaData\ScadaData\bin\Debug\ScadaData.dll</HintPath>
+      <HintPath>..\..\..\RScada5\ScadaData\ScadaData\bin\Debug\ScadaData.dll</HintPath>
+    </Reference>
+    <Reference Include="ScadaCommCommon">
+      <HintPath>..\..\..\RScada5\ScadaComm\ScadaCommCommon\bin\Debug\ScadaCommCommon.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
