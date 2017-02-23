@@ -6,7 +6,6 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using Scada.Data;
 using StriderMqtt;
-
 using Scada.Client;
 
 namespace Scada.Comm.Devices
@@ -326,6 +325,7 @@ namespace Scada.Comm.Devices
 		{
 			base.Session ();
 
+
 			if (WorkState == WorkStates.Error) {
 				Transport.Close ();
 				Transport = new TcpTransport (connArgs.Hostname, connArgs.Port);
@@ -344,8 +344,6 @@ namespace Scada.Comm.Devices
 
 			WorkState = WorkStates.Normal;
 
-
-
 			Send (new PingreqPacket ());
 			ReceivePacket ();
 			MQTTPTs = RSrv.GetValues (MQTTPTs);
@@ -359,18 +357,23 @@ namespace Scada.Comm.Devices
 				});
 				mqtttp.IsPub = false;
 			}
+
 			Thread.Sleep (ReqParams.Delay);
 		}
 
 
 		public override void OnAddedToCommLine ()
 		{
+	
+				
+			
 			List<TagGroup> tagGroups = new List<TagGroup> ();
 			TagGroup tagGroup = new TagGroup ("GroupMQTT");
 
 			XmlDocument xmlDoc = new XmlDocument ();
 			string filename = ReqParams.CmdLine.Trim ();
 			xmlDoc.Load (AppDirs.ConfigDir + filename);
+			
 			XmlNode MQTTSubTopics = xmlDoc.DocumentElement.SelectSingleNode ("MqttSubTopics");
 			XmlNode MQTTPubTopics = xmlDoc.DocumentElement.SelectSingleNode ("MqttPubTopics");
 			XmlNode RapSrvCnf = xmlDoc.DocumentElement.SelectSingleNode ("RapSrvCnf");
@@ -387,6 +390,8 @@ namespace Scada.Comm.Devices
 			RSrv.Conn ();
 			MQTTPTs = new List<MQTTPubTopic> ();
 
+
+
 			foreach (XmlElement MqttPTCnf in MQTTPubTopics) {
 				MQTTPubTopic MqttPT = new MQTTPubTopic () {
 					NumCnl = Convert.ToInt32 (MqttPTCnf.GetAttribute ("NumCnl")),
@@ -396,6 +401,8 @@ namespace Scada.Comm.Devices
 				};
 				MQTTPTs.Add (MqttPT);
 			}
+
+
 
 			sp = new SubscribePacket ();
 			int i = 0;
@@ -414,6 +421,8 @@ namespace Scada.Comm.Devices
 				i++;
 			}
 
+
+
 			tagGroups.Add (tagGroup);
 			InitKPTags (tagGroups);
 
@@ -424,7 +433,6 @@ namespace Scada.Comm.Devices
 			connArgs.Username = MQTTSettings.Attributes.GetNamedItem ("UserName").Value;
 			connArgs.Password = MQTTSettings.Attributes.GetNamedItem ("Password").Value;
 
-
 			this.Persistence = new InMemoryPersistence ();
 			Transport = new TcpTransport (connArgs.Hostname, connArgs.Port);
 			Transport.Version = connArgs.Version;
@@ -434,6 +442,9 @@ namespace Scada.Comm.Devices
 			ReceiveConnack ();
 			ResumeOutgoingFlows ();
 			Subscribe (sp);
+
+
+
 		}
 
 
@@ -443,6 +454,7 @@ namespace Scada.Comm.Devices
 			Send (new DisconnectPacket ());
 			Transport.Close ();
 			WriteToLog (Localization.UseRussian ? "Отключение от MQTT брокера" : "Disconnect from MQTT broker");
+			WorkState = WorkStates.Undefined;
 		}
 	}
 }
