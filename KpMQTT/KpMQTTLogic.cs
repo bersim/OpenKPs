@@ -397,6 +397,7 @@ namespace Scada.Comm.Devices
 					NumCnl = Convert.ToInt32 (MqttPTCnf.GetAttribute ("NumCnl")),
 					QosLevels = (MqttQos)Convert.ToByte (MqttPTCnf.GetAttribute ("QosLevel")),
 					TopicName = MqttPTCnf.GetAttribute ("TopicName"),
+					PubBehavior=MqttPTCnf.GetAttribute("PubBehavior"),
 					Value = 0
 				};
 				MQTTPTs.Add (MqttPT);

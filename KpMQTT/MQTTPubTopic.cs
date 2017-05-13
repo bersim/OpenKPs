@@ -18,6 +18,8 @@ namespace Scada.Comm.Devices
 
 		public bool IsPub { get; set; }
 
+		public string PubBehavior { get; set;}
+
 
 	}
 
@@ -48,8 +50,13 @@ namespace Scada.Comm.Devices
 				foreach (MQTTPubTopic MqttPT in MqttPTs) {
 					found = srez.GetCnlData (MqttPT.NumCnl, out cnlData);
 					if (found) {
-						if (MqttPT.Value != cnlData.Val)
-							MqttPT.IsPub = true; 
+						if(MqttPT.PubBehavior=="OnChange")
+						{
+							if (MqttPT.Value != cnlData.Val)
+								MqttPT.IsPub = true;
+						}
+						if (MqttPT.PubBehavior == "OnAlways")
+							MqttPT.IsPub = true;
 						MqttPT.Value = cnlData.Val;
 					}
 				}
