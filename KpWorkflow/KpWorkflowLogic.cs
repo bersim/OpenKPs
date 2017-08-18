@@ -79,10 +79,24 @@ namespace Scada.Comm.Devices
 		{
 			base.SendCmd (cmd);
 
+			if (cmd.CmdTypeID == BaseValues.CmdTypes.Standard)
+			{
+				switch(cmd.CmdNum)
+				{
+				case 1:
+					we.StartWorkflow (Convert.ToInt32(cmd.CmdVal));
+					break;
+				case 2:
+					we.StopWorkflow (Convert.ToInt32(cmd.CmdVal));
+					break;
+				case 3:
+					we.PauseWorkflow (Convert.ToInt32(cmd.CmdVal));
+					break;
+				}
+			}
+				
 
-
-
-			WriteToLog ("Команда принята: " + cmd.CmdVal.ToString ());
+				
 		}
 	}
 }
