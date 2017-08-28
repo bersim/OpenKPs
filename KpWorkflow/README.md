@@ -23,6 +23,26 @@
 - Раздел описания задач;  
 - Раздел описания графа исполнения задач;  
 
+Создадим рабочий поток, который ничего полезного не делает, но показывает базовые принципы его построения и конфигурирования.  
+Ниже показан пример такого рабочего потока:  
+
+```xml
+<Workflow xmlns="urn:wexflow-schema" id="41" name="Workflow_Wait" description="Workflow_Wait">
+	<Settings>
+		<Setting name="launchType" value="periodic" /> <!-- startup|trigger|periodic -->
+		<Setting name="period" value="00.00:00:10.00" />
+		<Setting name="enabled" value="true" /> <!-- true|false -->
+		<Setting name="createTF" value="false"/> <!-- true|false -->
+	</Settings>
+	<Tasks>
+		<Task id="1" name="Wait" description="Wait for 5 seconds..." enabled="true">
+			<Setting name="duration" value="00.00:00:05" />
+		</Task>
+	</Tasks>
+</Workflow>
+```
+
+
 
 Настройка KpWorkflow драйвера для Scada Communicator.
 ------------------------------------------------------------------------
