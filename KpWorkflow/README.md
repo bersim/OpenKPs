@@ -3,7 +3,7 @@
 
 Драйвер KpWorkflow.dll является прикладной библиотекой для приложения Scada Communicator проекта RapidScada.
 Этот драйвер позволяет реализовать управление последовательностью выполнения задач внутри рабочего потока (workflow). При реализации данного проекта использовались следующие библиотеки:
-	- [Wexflow ] (https://github.com/aelassas/Wexflow/) 
+	- [Wexflow ] (https://github.com/aelassas/Wexflow/)
 	- [Mathparser] (https://github.com/mariuszgromada/MathParser.org-mXparser)
 	
 Вводная информация о работе драйвера KpWorkflow.
