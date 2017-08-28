@@ -56,6 +56,7 @@
   <ItemGroup>
     <None Include="log4netConf.xml" />
     <None Include="Workflow.xsd" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Wexflow.Core\Wexflow.Core.csproj">
