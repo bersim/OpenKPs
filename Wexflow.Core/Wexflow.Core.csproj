@@ -6,7 +6,7 @@
     <ProjectGuid>{5CF9622C-4202-4404-8EEF-36B03202DB12}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>Wexflow.Core</RootNamespace>
-    <AssemblyName>Wexflow.Core</AssemblyName>
+    <AssemblyName>Wexflow</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -29,10 +29,104 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="log4net">
+      <HintPath>..\..\..\sda3data\MonoDvlpPrjs\RapidScada\WexFlow\libs\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="ScadaData">
+      <HintPath>..\..\..\sda3data\MonoDvlpPrjs\RapidScada\ScadaData\ScadaData\bin\Debug\ScadaData.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.DataSetExtensions" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MyClass.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Cnl.cs" />
+    <Compile Include="Entity.cs" />
+    <Compile Include="FileInf.cs" />
+    <Compile Include="LaunchType.cs" />
+    <Compile Include="Logger.cs" />
+    <Compile Include="RSServer.cs" />
+    <Compile Include="Status.cs" />
+    <Compile Include="STLs.cs" />
+    <Compile Include="Tag.cs" />
+    <Compile Include="Task.cs" />
+    <Compile Include="TaskStatus.cs" />
+    <Compile Include="WeWatch.cs" />
+    <Compile Include="WexflowEngine.cs" />
+    <Compile Include="WexflowTimer.cs" />
+    <Compile Include="Workflow.cs" />
+    <Compile Include="ExecutionGraph\Graph.cs" />
+    <Compile Include="ExecutionGraph\GraphEvent.cs" />
+    <Compile Include="ExecutionGraph\Node.cs" />
+    <Compile Include="ExecutionGraph\Flowchart\Case.cs" />
+    <Compile Include="ExecutionGraph\Flowchart\If.cs" />
+    <Compile Include="ExecutionGraph\Flowchart\Switch.cs" />
+    <Compile Include="ExecutionGraph\Flowchart\While.cs" />
+    <Compile Include="Mathparser\Argument.cs" />
+    <Compile Include="Mathparser\Constant.cs" />
+    <Compile Include="Mathparser\Expression.cs" />
+    <Compile Include="Mathparser\Function.cs" />
+    <Compile Include="Mathparser\FunctionExtension.cs" />
+    <Compile Include="Mathparser\Miscellaneous.cs" />
+    <Compile Include="Mathparser\PrimitiveElement.cs" />
+    <Compile Include="Mathparser\RSComparator.cs" />
+    <Compile Include="Mathparser\RecursiveArgument.cs" />
+    <Compile Include="Mathparser\Tutorial.cs" />
+    <Compile Include="Mathparser\mXparser.cs" />
+    <Compile Include="Mathparser\mathcollection\AstronomicalConstants.cs" />
+    <Compile Include="Mathparser\mathcollection\BinaryRelations.cs" />
+    <Compile Include="Mathparser\mathcollection\BooleanAlgebra.cs" />
+    <Compile Include="Mathparser\mathcollection\Calculus.cs" />
+    <Compile Include="Mathparser\mathcollection\Coefficients.cs" />
+    <Compile Include="Mathparser\mathcollection\Evaluate.cs" />
+    <Compile Include="Mathparser\mathcollection\MathConstants.cs" />
+    <Compile Include="Mathparser\mathcollection\MathFunctions.cs" />
+    <Compile Include="Mathparser\mathcollection\NumberTheory.cs" />
+    <Compile Include="Mathparser\mathcollection\PhysicalConstants.cs" />
+    <Compile Include="Mathparser\mathcollection\PrimesCache.cs" />
+    <Compile Include="Mathparser\mathcollection\ProbabilityDistributions.cs" />
+    <Compile Include="Mathparser\mathcollection\SpecialFunctions.cs" />
+    <Compile Include="Mathparser\mathcollection\Statistics.cs" />
+    <Compile Include="Mathparser\mathcollection\Units.cs" />
+    <Compile Include="Mathparser\parsertokens\BinaryRelation.cs" />
+    <Compile Include="Mathparser\parsertokens\BitwiseOperator.cs" />
+    <Compile Include="Mathparser\parsertokens\BooleanOperator.cs" />
+    <Compile Include="Mathparser\parsertokens\CalculusOperator.cs" />
+    <Compile Include="Mathparser\parsertokens\ConstantValue.cs" />
+    <Compile Include="Mathparser\parsertokens\Function1Arg.cs" />
+    <Compile Include="Mathparser\parsertokens\Function2Arg.cs" />
+    <Compile Include="Mathparser\parsertokens\Function3Arg.cs" />
+    <Compile Include="Mathparser\parsertokens\FunctionVariadic.cs" />
+    <Compile Include="Mathparser\parsertokens\KeyWord.cs" />
+    <Compile Include="Mathparser\parsertokens\Operator.cs" />
+    <Compile Include="Mathparser\parsertokens\ParserSymbol.cs" />
+    <Compile Include="Mathparser\parsertokens\RandomVariable.cs" />
+    <Compile Include="Mathparser\parsertokens\Token.cs" />
+    <Compile Include="Mathparser\parsertokens\Unit.cs" />
+    <Compile Include="Mathparser\regressiontesting\PerformanceTests.cs" />
+    <Compile Include="Mathparser\regressiontesting\RegTestExpression.cs" />
+    <Compile Include="Mathparser\regressiontesting\RegTestExpressionAPI.cs" />
+    <Compile Include="Mathparser\regressiontesting\RegTestSyntax.cs" />
+    <Compile Include="Mathparser\regressiontesting\RunTest.cs" />
+    <Compile Include="Mathparser\syntaxchecker\ParseException.cs" />
+    <Compile Include="Mathparser\syntaxchecker\SimpleCharStream.cs" />
+    <Compile Include="Mathparser\syntaxchecker\SyntaxChecker.cs" />
+    <Compile Include="Mathparser\syntaxchecker\SyntaxCheckerConstants.cs" />
+    <Compile Include="Mathparser\syntaxchecker\SyntaxCheckerTokenManager.cs" />
+    <Compile Include="Mathparser\syntaxchecker\Token.cs" />
+    <Compile Include="Mathparser\syntaxchecker\TokenMgrError.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <None Include="Mathparser\regressiontesting\PerformanceTests.cs.old" />
+    <None Include="Mathparser\syntaxchecker\SyntaxChecker.jj" />
+    <None Include="Mathparser\syntaxchecker\csjavacc.jar" />
+    <None Include="Mathparser\syntaxchecker\generate-SyntaxChecker.bat" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="log4netConf.xml" />
+  </ItemGroup>
 </Project>

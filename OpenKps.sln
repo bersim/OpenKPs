@@ -3,15 +3,32 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KpMQTT", "KpMQTT\KpMQTT.csproj", "{BB37406C-49F1-4270-95C0-86BF2C4B4DD6}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Wexflow", "Wexflow", "{F06AED31-B205-4197-9723-D37044B4FF91}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wexflow.Core", "Wexflow.Core\Wexflow.Core.csproj", "{5CF9622C-4202-4404-8EEF-36B03202DB12}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KpWorkflow", "KpWorkflow\KpWorkflow.csproj", "{BC7BB14F-B478-4DB1-96E5-14BC97684217}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5CF9622C-4202-4404-8EEF-36B03202DB12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CF9622C-4202-4404-8EEF-36B03202DB12}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CF9622C-4202-4404-8EEF-36B03202DB12}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CF9622C-4202-4404-8EEF-36B03202DB12}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BB37406C-49F1-4270-95C0-86BF2C4B4DD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BB37406C-49F1-4270-95C0-86BF2C4B4DD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BB37406C-49F1-4270-95C0-86BF2C4B4DD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BB37406C-49F1-4270-95C0-86BF2C4B4DD6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC7BB14F-B478-4DB1-96E5-14BC97684217}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC7BB14F-B478-4DB1-96E5-14BC97684217}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC7BB14F-B478-4DB1-96E5-14BC97684217}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC7BB14F-B478-4DB1-96E5-14BC97684217}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{5CF9622C-4202-4404-8EEF-36B03202DB12} = {F06AED31-B205-4197-9723-D37044B4FF91}
 	EndGlobalSection
 EndGlobal
