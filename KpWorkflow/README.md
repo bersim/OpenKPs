@@ -54,13 +54,37 @@
     - **startup** - запускает рабочий поток один раз при запуске КП.  
     - **trigger** - запускает рабочий поток по команде из Rapid Scada.  
     - **periodic** - запускает рабочий поток периодически.  
-  - **period** - данный параметр используется если значение **launchType** выбрано **periodic**. Определяет период запуска рабочего потока.
-  - **enabled** - данный параметр используется для включения или отключения рабочего потока.
-  - **createTF** - данній параметр определяет, будут
+  - **period** - данный параметр используется если значение **launchType** выбрано **periodic**. Определяет период запуска рабочего потока.  
+  - **enabled** - данный параметр используется для включения или отключения рабочего потока.  
+  - **createTF** - данный параметр определяет, будeт ли рабочий поток создавать временные папки.  
 
 
 Настройка KpWorkflow драйвера для Scada Communicator.
 ------------------------------------------------------------------------
+
+Драйвер KpWorkflow зависит от внешних библиотек:
+  - **log4net.dll** - данная библиотека используется для реализации внутреннего механизма логирования. При этом используется файл лога формируется в корневой директории ScadaCommunicator.  
+  - **Wexflow.dll** - данная библиотека содержит программный движок, реализующий функциональность Workflow.  
+  - **Wexflow.TaskName.dll** - в библиотеках с указанным именем, где **TaskName** имя задачи, содержится программная реализация опредленной задачи.  
+  
+После того как все зависимые библиотеки опредлены, их необходимо разместить в корневой директории приложения **Scada Communicator**.  
+Настроечные параметры KpWorkflow задаются в конфигурационном файле формата **xml**, который размещается в папке **Config**.  
+
+Ниже показан пример конфигурационного файла **KpWorkflow**:  
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<Wexflow>
+	<Setting name="workflowsFolder" value="C:\SCADA\ScadaComm\Config\KpWorkflow_1\Workflows" />
+	<Setting name="tempFolder" value="C:\SCADA\ScadaComm\Config\KpWorkflow_1\Workflow\Temp" />
+	<Setting name="xsd" value="C:\SCADA\ScadaComm\Config\KpWorkflow_1\Workflow\Workflow.xsd" />
+	<RSServers>
+		<RSServer Id="1" ServerHost="xxx.xxx.xxx.xxx" ServerPort="10000" ServerUser="ScadaComm" ServerPwd="12345"/>
+		<RSServer Id="2" ServerHost="xxx.xxx.xxx.xxx" ServerPort="10000" ServerUser="ScadaComm" ServerPwd="12345"/>
+		<RSServer Id="3" ServerHost="xxx.xxx.xxx.xxx" ServerPort="10000" ServerUser="ScadaComm" ServerPwd="12345"/>
+	</RSServers>
+</Wexflow>   
+```  
 
 
 
