@@ -20,6 +20,8 @@ namespace Scada.Comm.Devices
 
 		public string PubBehavior { get; set;}
 
+		public bool Retain { get; set;}
+
 
 	}
 

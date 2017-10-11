@@ -353,6 +353,7 @@ namespace Scada.Comm.Devices
 				Publish (new PublishPacket () {
 					Topic = mqtttp.TopicName,
 					QosLevel = mqtttp.QosLevels,
+					Retain = mqtttp.Retain,
 					Message = Encoding.UTF8.GetBytes (mqtttp.Value.ToString ())
 				});
 				mqtttp.IsPub = false;
@@ -390,42 +391,50 @@ namespace Scada.Comm.Devices
 			RSrv.Conn ();
 			MQTTPTs = new List<MQTTPubTopic> ();
 
+			if(MQTTPubTopics.ChildNodes.Count > 0){
+				foreach (XmlElement MqttPTCnf in MQTTPubTopics) {
+					MQTTPubTopic MqttPT = new MQTTPubTopic () {
+						NumCnl = Convert.ToInt32 (MqttPTCnf.GetAttribute ("NumCnl")),
+						QosLevels = (MqttQos)Convert.ToByte (MqttPTCnf.GetAttribute ("QosLevel")),
+						TopicName = MqttPTCnf.GetAttribute ("TopicName"),
+						PubBehavior=MqttPTCnf.GetAttribute("PubBehavior"),
+						Retain=MqttPTCnf.GetAttrAsBool("Retain",false),
+						Value = 0
+					};
+					MQTTPTs.Add (MqttPT);
+
+				}
+			}
+				
+
+			if (MQTTSubTopics.ChildNodes.Count>0){
+				sp = new SubscribePacket ();
+				int i = 0;
+				sp.Topics = new string[MQTTSubTopics.ChildNodes.Count];
+				sp.QosLevels = new MqttQos[MQTTSubTopics.ChildNodes.Count];
+
+				foreach (XmlElement elemGroupElem in MQTTSubTopics.ChildNodes) {
 
 
-			foreach (XmlElement MqttPTCnf in MQTTPubTopics) {
-				MQTTPubTopic MqttPT = new MQTTPubTopic () {
-					NumCnl = Convert.ToInt32 (MqttPTCnf.GetAttribute ("NumCnl")),
-					QosLevels = (MqttQos)Convert.ToByte (MqttPTCnf.GetAttribute ("QosLevel")),
-					TopicName = MqttPTCnf.GetAttribute ("TopicName"),
-					PubBehavior=MqttPTCnf.GetAttribute("PubBehavior"),
-					Value = 0
-				};
-				MQTTPTs.Add (MqttPT);
+
+					sp.Topics [i] = elemGroupElem.GetAttribute ("TopicName");
+					sp.QosLevels [i] = (MqttQos)Convert.ToByte (elemGroupElem.GetAttribute ("QosLevel"));
+
+					KPTag KPt = new KPTag () {
+						Signal = i + 1,
+						Name = sp.Topics [i],
+						CnlNum = Convert.ToInt32 (elemGroupElem.GetAttribute ("NumCnl"))
+					};
+					tagGroup.KPTags.Add (KPt);
+					i++;
+				}
+					
+				tagGroups.Add (tagGroup);
+				InitKPTags (tagGroups);
+
 			}
 
 
-
-			sp = new SubscribePacket ();
-			int i = 0;
-			sp.Topics = new string[MQTTSubTopics.ChildNodes.Count];
-			sp.QosLevels = new MqttQos[MQTTSubTopics.ChildNodes.Count];
-		
-			foreach (XmlElement elemGroupElem in MQTTSubTopics.ChildNodes) {
-				sp.Topics [i] = elemGroupElem.GetAttribute ("TopicName");
-				sp.QosLevels [i] = (MqttQos)Convert.ToByte (elemGroupElem.GetAttribute ("QosLevel"));
-				KPTag KPt = new KPTag () {
-					Signal = i + 1,
-					Name = sp.Topics [i],
-					CnlNum = Convert.ToInt32 (elemGroupElem.GetAttribute ("NumCnl"))
-				};
-				tagGroup.KPTags.Add (KPt);
-				i++;
-			}
-
-
-
-			tagGroups.Add (tagGroup);
-			InitKPTags (tagGroups);
 
 			connArgs = new MqttConnectionArgs ();
 			connArgs.ClientId = MQTTSettings.Attributes.GetNamedItem ("ClientID").Value;
@@ -442,7 +451,10 @@ namespace Scada.Comm.Devices
 			Send (MakeConnectMessage (connArgs));
 			ReceiveConnack ();
 			ResumeOutgoingFlows ();
-			Subscribe (sp);
+
+
+			if(sp != null)
+				Subscribe (sp);
 
 
 
