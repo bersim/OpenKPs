@@ -227,7 +227,7 @@ namespace Scada.Comm.Devices
 			//WriteToLog (packet.Topic);
 
 			string pv = Encoding.UTF8.GetString (packet.Message);
-			Regex reg = new Regex (@"^[-]?\d+[,]?\d+$");
+			Regex reg = new Regex (@"^[-]?\d+[,.]?\d+$");
 			Regex reg2 = new Regex (@"^[-\d]+$");
 
 			if (reg.IsMatch (pv)) {
@@ -235,6 +235,7 @@ namespace Scada.Comm.Devices
 				int tagInd = 0;
 				foreach (KPTag kpt in KPTags) {
 					if (kpt.Name == packet.Topic) {
+						pv = pv.Replace ('.', ',');
 						SetCurData (tagInd, Convert.ToDouble (pv), 1);
 						WriteToLog (kpt.CnlNum.ToString ());
 					}
@@ -335,7 +336,8 @@ namespace Scada.Comm.Devices
 				Send (MakeConnectMessage (connArgs));
 				ReceiveConnack ();
 				ResumeOutgoingFlows ();
-				Subscribe (sp);
+				if(sp.Topics.Length > 0)
+					Subscribe (sp);
 				WorkState = WorkStates.Normal;
 				WriteToLog (Localization.UseRussian ? "Повторяем подключение с брокером MQTT" : "Retry connect in MQTT broker");
 				return;
@@ -353,7 +355,6 @@ namespace Scada.Comm.Devices
 				Publish (new PublishPacket () {
 					Topic = mqtttp.TopicName,
 					QosLevel = mqtttp.QosLevels,
-					Retain = mqtttp.Retain,
 					Message = Encoding.UTF8.GetBytes (mqtttp.Value.ToString ())
 				});
 				mqtttp.IsPub = false;
@@ -366,7 +367,7 @@ namespace Scada.Comm.Devices
 		public override void OnAddedToCommLine ()
 		{
 	
-				
+
 			
 			List<TagGroup> tagGroups = new List<TagGroup> ();
 			TagGroup tagGroup = new TagGroup ("GroupMQTT");
@@ -391,50 +392,48 @@ namespace Scada.Comm.Devices
 			RSrv.Conn ();
 			MQTTPTs = new List<MQTTPubTopic> ();
 
-			if(MQTTPubTopics.ChildNodes.Count > 0){
-				foreach (XmlElement MqttPTCnf in MQTTPubTopics) {
-					MQTTPubTopic MqttPT = new MQTTPubTopic () {
-						NumCnl = Convert.ToInt32 (MqttPTCnf.GetAttribute ("NumCnl")),
-						QosLevels = (MqttQos)Convert.ToByte (MqttPTCnf.GetAttribute ("QosLevel")),
-						TopicName = MqttPTCnf.GetAttribute ("TopicName"),
-						PubBehavior=MqttPTCnf.GetAttribute("PubBehavior"),
-						Retain=MqttPTCnf.GetAttrAsBool("Retain",false),
-						Value = 0
-					};
-					MQTTPTs.Add (MqttPT);
-
-				}
-			}
-				
-
-			if (MQTTSubTopics.ChildNodes.Count>0){
-				sp = new SubscribePacket ();
-				int i = 0;
-				sp.Topics = new string[MQTTSubTopics.ChildNodes.Count];
-				sp.QosLevels = new MqttQos[MQTTSubTopics.ChildNodes.Count];
-
-				foreach (XmlElement elemGroupElem in MQTTSubTopics.ChildNodes) {
 
 
-
-					sp.Topics [i] = elemGroupElem.GetAttribute ("TopicName");
-					sp.QosLevels [i] = (MqttQos)Convert.ToByte (elemGroupElem.GetAttribute ("QosLevel"));
-
-					KPTag KPt = new KPTag () {
-						Signal = i + 1,
-						Name = sp.Topics [i],
-						CnlNum = Convert.ToInt32 (elemGroupElem.GetAttribute ("NumCnl"))
-					};
-					tagGroup.KPTags.Add (KPt);
-					i++;
-				}
-					
-				tagGroups.Add (tagGroup);
-				InitKPTags (tagGroups);
-
+			foreach (XmlElement MqttPTCnf in MQTTPubTopics) {
+				MQTTPubTopic MqttPT = new MQTTPubTopic () {
+					NumCnl = Convert.ToInt32 (MqttPTCnf.GetAttribute ("NumCnl")),
+					QosLevels = (MqttQos)Convert.ToByte (MqttPTCnf.GetAttribute ("QosLevel")),
+					TopicName = MqttPTCnf.GetAttribute ("TopicName"),
+					PubBehavior=MqttPTCnf.GetAttribute("PubBehavior"),
+					Value = 0
+				};
+				MQTTPTs.Add (MqttPT);
 			}
 
 
+
+
+
+			sp = new SubscribePacket ();
+			int i = 0;
+
+			int spCnt = MQTTSubTopics.ChildNodes.Count;
+
+
+			sp.Topics = new string[MQTTSubTopics.ChildNodes.Count];
+			sp.QosLevels = new MqttQos[MQTTSubTopics.ChildNodes.Count];
+		
+			foreach (XmlElement elemGroupElem in MQTTSubTopics.ChildNodes) {
+				sp.Topics [i] = elemGroupElem.GetAttribute ("TopicName");
+				sp.QosLevels [i] = (MqttQos)Convert.ToByte (elemGroupElem.GetAttribute ("QosLevel"));
+				KPTag KPt = new KPTag () {
+					Signal = i + 1,
+					Name = sp.Topics [i],
+					CnlNum = Convert.ToInt32 (elemGroupElem.GetAttribute ("NumCnl"))
+				};
+				tagGroup.KPTags.Add (KPt);
+				i++;
+			}
+
+
+
+			tagGroups.Add (tagGroup);
+			InitKPTags (tagGroups);
 
 			connArgs = new MqttConnectionArgs ();
 			connArgs.ClientId = MQTTSettings.Attributes.GetNamedItem ("ClientID").Value;
@@ -452,9 +451,12 @@ namespace Scada.Comm.Devices
 			ReceiveConnack ();
 			ResumeOutgoingFlows ();
 
-
-			if(sp != null)
+			if(sp.Topics.Length >0)
 				Subscribe (sp);
+
+
+
+			WriteToLog (Localization.UseRussian ? "Инициализация линии связи выполнена успешно." : "Communication line initialized successfully");
 
 
 
