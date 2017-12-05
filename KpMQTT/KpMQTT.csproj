@@ -30,14 +30,14 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
-    <Reference Include="ScadaCommCommon">
-      <HintPath>..\..\..\sda3data\MonoDvlpPrjs\RapidScada\ScadaComm\ScadaCommCommon\bin\Debug\ScadaCommCommon.dll</HintPath>
-    </Reference>
     <Reference Include="ScadaData">
-      <HintPath>..\..\..\sda3data\MonoDvlpPrjs\RapidScada\ScadaData\ScadaData\bin\Debug\ScadaData.dll</HintPath>
+      <HintPath>..\..\..\RS541\RSSDK\ScadaData\ScadaData\bin\Debug\ScadaData.dll</HintPath>
+    </Reference>
+    <Reference Include="ScadaCommCommon">
+      <HintPath>..\..\..\RS541\ScadaComm\ScadaCommCommon\bin\Debug\ScadaCommCommon.dll</HintPath>
     </Reference>
     <Reference Include="Log">
-      <HintPath>..\..\..\sda3data\MonoDvlpPrjs\RapidScada\Log\bin\Debug\Log.dll</HintPath>
+      <HintPath>..\..\..\RS541\RSSDK\Log\bin\Debug\Log.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

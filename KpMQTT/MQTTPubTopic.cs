@@ -14,6 +14,8 @@ namespace Scada.Comm.Devices
 
 		public int NumCnl { get; set; }
 
+		public string NumberDecimalSeparator { get; set;}
+
 		public double Value { get; set; }
 
 		public bool IsPub { get; set; }

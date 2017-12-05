@@ -4,6 +4,7 @@ using System.Threading;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Globalization;
 using Scada.Data;
 using StriderMqtt;
 using Scada.Client;
@@ -349,13 +350,16 @@ namespace Scada.Comm.Devices
 			Send (new PingreqPacket ());
 			ReceivePacket ();
 			MQTTPTs = RSrv.GetValues (MQTTPTs);
+			NumberFormatInfo nfi = new NumberFormatInfo ();
+
 			foreach (MQTTPubTopic mqtttp in MQTTPTs) {
 				if (!mqtttp.IsPub)
 					continue; 
+				nfi.NumberDecimalSeparator = mqtttp.NumberDecimalSeparator;
 				Publish (new PublishPacket () {
 					Topic = mqtttp.TopicName,
 					QosLevel = mqtttp.QosLevels,
-					Message = Encoding.UTF8.GetBytes (mqtttp.Value.ToString ())
+					Message = Encoding.UTF8.GetBytes (mqtttp.Value.ToString (nfi))
 				});
 				mqtttp.IsPub = false;
 			}
@@ -400,6 +404,7 @@ namespace Scada.Comm.Devices
 					QosLevels = (MqttQos)Convert.ToByte (MqttPTCnf.GetAttribute ("QosLevel")),
 					TopicName = MqttPTCnf.GetAttribute ("TopicName"),
 					PubBehavior=MqttPTCnf.GetAttribute("PubBehavior"),
+					NumberDecimalSeparator = MqttPTCnf.GetAttribute("NDS"),
 					Value = 0
 				};
 				MQTTPTs.Add (MqttPT);
