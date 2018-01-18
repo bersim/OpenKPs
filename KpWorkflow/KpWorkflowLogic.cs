@@ -1,13 +1,11 @@
 ﻿using Scada.Comm.Channels;
 using Scada.Data.Models;
 using Scada.Data.Tables;
+using Scada.Data.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using Wexflow.Core;
-
-
-
 
 
 namespace Scada.Comm.Devices

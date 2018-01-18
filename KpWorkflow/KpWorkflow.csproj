@@ -34,17 +34,17 @@
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
-    <Reference Include="Log">
-      <HintPath>..\..\..\sda3data\MonoDvlpPrjs\RapidScada\Log\bin\Debug\Log.dll</HintPath>
-    </Reference>
     <Reference Include="log4net">
       <HintPath>..\..\..\sda3data\MonoDvlpPrjs\RapidScada\WexFlow\libs\log4net.dll</HintPath>
     </Reference>
+    <Reference Include="Log">
+      <HintPath>..\..\..\sda3data\MonoDvlpPrjs\RapidScada\550\RS550\Log\bin\Debug\Log.dll</HintPath>
+    </Reference>
     <Reference Include="ScadaCommCommon">
-      <HintPath>..\..\..\sda3data\MonoDvlpPrjs\RapidScada\ScadaComm\ScadaCommCommon\bin\Debug\ScadaCommCommon.dll</HintPath>
+      <HintPath>..\..\..\sda3data\MonoDvlpPrjs\RapidScada\550\RS550\ScadaComm\ScadaCommCommon\bin\Debug\ScadaCommCommon.dll</HintPath>
     </Reference>
     <Reference Include="ScadaData">
-      <HintPath>..\..\..\sda3data\MonoDvlpPrjs\RapidScada\ScadaData\ScadaData\bin\Debug\ScadaData.dll</HintPath>
+      <HintPath>..\..\..\sda3data\MonoDvlpPrjs\RapidScada\550\RS550\ScadaData\ScadaData\bin\Debug\ScadaData.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
