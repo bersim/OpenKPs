@@ -98,6 +98,9 @@ MQTT - является простым сетевым протоколом, ко
   <MqttPubTopics>
 	<Topic TopicName="/myparam10" QosLevel="0" NumCnl="21" PubBehavior="OnChange" Retain="false" NDS="."/>
   </MqttPubTopics>
+  <MqttPubCmds>
+    <Topic TopicName="/myparam100" QosLevel="0" NumCmd="1"/>
+  </MqttPubCmds>
 </DevTemplate>
 ```
 
