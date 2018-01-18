@@ -6,6 +6,8 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Globalization;
 using Scada.Data;
+using Scada.Data.Models;
+using Scada.Data.Configuration;
 using StriderMqtt;
 using Scada.Client;
 
@@ -26,6 +28,8 @@ namespace Scada.Comm.Devices
 
 		private List<MQTTPubTopic> MQTTPTs;
 
+		private List<MQTTPubCmd> MQTTCmds;
+
 		private RapSrvEx RSrv;
 
 		private SubscribePacket sp;
@@ -34,6 +38,7 @@ namespace Scada.Comm.Devices
 		public KpMQTTLogic (int number) : base (number)
 		{
 			ConnRequired = false;
+			CanSendCmd = true;
 			WorkState = WorkStates.Normal;
 		}
 
@@ -359,6 +364,7 @@ namespace Scada.Comm.Devices
 				Publish (new PublishPacket () {
 					Topic = mqtttp.TopicName,
 					QosLevel = mqtttp.QosLevels,
+					Retain = mqtttp.Retain,
 					Message = Encoding.UTF8.GetBytes (mqtttp.Value.ToString (nfi))
 				});
 				mqtttp.IsPub = false;
@@ -382,6 +388,7 @@ namespace Scada.Comm.Devices
 			
 			XmlNode MQTTSubTopics = xmlDoc.DocumentElement.SelectSingleNode ("MqttSubTopics");
 			XmlNode MQTTPubTopics = xmlDoc.DocumentElement.SelectSingleNode ("MqttPubTopics");
+			XmlNode MQTTPubCmds = xmlDoc.DocumentElement.SelectSingleNode ("MqttPubCmds");
 			XmlNode RapSrvCnf = xmlDoc.DocumentElement.SelectSingleNode ("RapSrvCnf");
 			XmlNode MQTTSettings = xmlDoc.DocumentElement.SelectSingleNode ("MqttParams");
 
@@ -395,34 +402,37 @@ namespace Scada.Comm.Devices
 			RSrv = new RapSrvEx (cs);
 			RSrv.Conn ();
 			MQTTPTs = new List<MQTTPubTopic> ();
-
-
+			MQTTCmds = new List<MQTTPubCmd> ();
 
 			foreach (XmlElement MqttPTCnf in MQTTPubTopics) {
 				MQTTPubTopic MqttPT = new MQTTPubTopic () {
 					NumCnl = Convert.ToInt32 (MqttPTCnf.GetAttribute ("NumCnl")),
 					QosLevels = (MqttQos)Convert.ToByte (MqttPTCnf.GetAttribute ("QosLevel")),
 					TopicName = MqttPTCnf.GetAttribute ("TopicName"),
-					PubBehavior=MqttPTCnf.GetAttribute("PubBehavior"),
-					NumberDecimalSeparator = MqttPTCnf.GetAttribute("NDS"),
+					PubBehavior = MqttPTCnf.GetAttribute ("PubBehavior"),
+					NumberDecimalSeparator = MqttPTCnf.GetAttribute ("NDS"),
 					Value = 0
 				};
 				MQTTPTs.Add (MqttPT);
 			}
 
-
-
-
-
+			foreach (XmlElement MqttPTCnf in MQTTPubCmds){
+				MQTTPubCmd MqttPTCmd = new MQTTPubCmd () {
+					NumCmd = MqttPTCnf.GetAttrAsInt("NumCmd"),
+					QosLevels = (MqttQos)Convert.ToByte (MqttPTCnf.GetAttribute ("QosLevel")),
+					Retain = false,
+					TopicName = MqttPTCnf.GetAttribute ("TopicName")
+				};
+				MQTTCmds.Add (MqttPTCmd);
+			}
+				
 			sp = new SubscribePacket ();
 			int i = 0;
-
 			int spCnt = MQTTSubTopics.ChildNodes.Count;
-
 
 			sp.Topics = new string[MQTTSubTopics.ChildNodes.Count];
 			sp.QosLevels = new MqttQos[MQTTSubTopics.ChildNodes.Count];
-		
+	
 			foreach (XmlElement elemGroupElem in MQTTSubTopics.ChildNodes) {
 				sp.Topics [i] = elemGroupElem.GetAttribute ("TopicName");
 				sp.QosLevels [i] = (MqttQos)Convert.ToByte (elemGroupElem.GetAttribute ("QosLevel"));
@@ -434,11 +444,9 @@ namespace Scada.Comm.Devices
 				tagGroup.KPTags.Add (KPt);
 				i++;
 			}
-
-
-
 			tagGroups.Add (tagGroup);
 			InitKPTags (tagGroups);
+
 
 			connArgs = new MqttConnectionArgs ();
 			connArgs.ClientId = MQTTSettings.Attributes.GetNamedItem ("ClientID").Value;
@@ -456,7 +464,7 @@ namespace Scada.Comm.Devices
 			ReceiveConnack ();
 			ResumeOutgoingFlows ();
 
-			if(sp.Topics.Length >0)
+			if(sp.Topics.Length > 0)
 				Subscribe (sp);
 
 
@@ -465,6 +473,38 @@ namespace Scada.Comm.Devices
 
 
 
+		}
+
+		public override void SendCmd(Command cmd)
+		{
+			base.SendCmd (cmd);
+
+			foreach(MQTTPubCmd mpc in MQTTCmds)
+			{
+				if (mpc.NumCmd != cmd.CmdNum)
+					continue;
+				if (cmd.CmdTypeID == BaseValues.CmdTypes.Standard)
+				{
+					NumberFormatInfo nfi = new NumberFormatInfo ();
+					nfi.NumberDecimalSeparator = ".";
+					Publish (new PublishPacket () {
+						Topic = mpc.TopicName,
+						QosLevel = mpc.QosLevels,
+						Retain = mpc.Retain,
+						Message = Encoding.UTF8.GetBytes (cmd.CmdVal.ToString (nfi))
+					});
+				}
+				if(cmd.CmdTypeID == BaseValues.CmdTypes.Binary)
+				{
+					Publish (new PublishPacket () {
+						Topic = mpc.TopicName,
+						QosLevel = mpc.QosLevels,
+						Retain = mpc.Retain,
+						Message = cmd.CmdData
+					});
+				}
+
+			}
 		}
 
 

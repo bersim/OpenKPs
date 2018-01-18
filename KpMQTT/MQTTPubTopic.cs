@@ -6,23 +6,25 @@ using Scada.Data.Tables;
 
 namespace Scada.Comm.Devices
 {
-	public class MQTTPubTopic
+	public abstract class MQTTPubParam
 	{
-		public string TopicName { get; set; }
+		public string TopicName {get;set;}
+		public MqttQos QosLevels {get;set;}
+		public bool Retain {get;set;}
+	}
 
-		public MqttQos QosLevels { get; set; }
-
+	public class MQTTPubTopic : MQTTPubParam
+	{
 		public int NumCnl { get; set; }
-
-		public string NumberDecimalSeparator { get; set;}
-
-		public double Value { get; set; }
-
-		public bool IsPub { get; set; }
-
 		public string PubBehavior { get; set;}
+		public string NumberDecimalSeparator { get; set;}
+		public double Value { get; set; }
+		public bool IsPub { get; set; }
+	}
 
-		public bool Retain { get; set;}
+	public class MQTTPubCmd : MQTTPubParam
+	{
+		public int NumCmd { get; set;}
 
 
 	}
