@@ -15,6 +15,14 @@ namespace Scada.Comm.Devices
 {
 	public class KpMQTTLogic : KPLogic
 	{
+		static readonly TimeSpan MaxPollTime = TimeSpan.FromSeconds(0.1);
+
+		// all in ms
+		private int Keepalive;
+		private int LastRead;
+		private int LastWrite;
+
+
 		private IMqttTransport Transport;
 		private IMqttPersistence Persistence;
 
@@ -34,12 +42,43 @@ namespace Scada.Comm.Devices
 
 		private SubscribePacket sp;
 
+		bool ReadWaitExpired
+		{
+			get
+			{
+				if (Keepalive > 0)
+				{
+					return Environment.TickCount - LastRead > (Keepalive * 1.5);
+				}
+				else
+				{
+					return false;
+				}
+			}
+		}
+
+		bool WriteWaitExpired
+		{
+			get
+			{
+				if (Keepalive > 0)
+				{
+					return Environment.TickCount - LastWrite > Keepalive;
+				}
+				else
+				{
+					return false;
+				}
+			}
+		}
+
 
 		public KpMQTTLogic (int number) : base (number)
 		{
 			ConnRequired = false;
 			CanSendCmd = true;
 			WorkState = WorkStates.Normal;
+			Keepalive = 60;
 		}
 
 		private void ResumeOutgoingFlows ()
@@ -170,6 +209,7 @@ namespace Scada.Comm.Devices
 				throw new MqttClientException ("Tried to send packet while closed");
 			}
 			Transport.Write (packet);
+			LastWrite = Environment.TickCount;
 		}
 
 		private ushort GetNextPacketId ()
@@ -189,6 +229,7 @@ namespace Scada.Comm.Devices
 		private void ReceivePacket ()
 		{
 			PacketBase packet = Transport.Read ();
+			LastRead = Environment.TickCount;
 			HandleReceivedPacket (packet);
 		}
 
@@ -328,32 +369,36 @@ namespace Scada.Comm.Devices
 			
 		}
 
+		private bool Poll(int pollTime)
+		{
+			return Transport.Poll (Math.Min (pollTime, (int)MaxPollTime.TotalMilliseconds));
+		}
+
 		public override void Session ()
 		{
 			base.Session ();
 
-
-			if (WorkState == WorkStates.Error) {
-				Transport.Close ();
-				Transport = new TcpTransport (connArgs.Hostname, connArgs.Port);
-				Transport.Version = connArgs.Version;
-				Transport.SetTimeouts (connArgs.ReadTimeout, connArgs.WriteTimeout);
-
-				Send (MakeConnectMessage (connArgs));
-				ReceiveConnack ();
-				ResumeOutgoingFlows ();
-				if(sp.Topics.Length > 0)
-					Subscribe (sp);
-				WorkState = WorkStates.Normal;
-				WriteToLog (Localization.UseRussian ? "Повторяем подключение с брокером MQTT" : "Retry connect in MQTT broker");
-				return;
-			}
-
-
 			WorkState = WorkStates.Normal;
 
-			Send (new PingreqPacket ());
-			ReceivePacket ();
+			int readThreshold = Environment.TickCount + Keepalive;
+			int pollTime = readThreshold - Environment.TickCount;
+			if(pollTime>0)
+			{
+				if(Poll(pollTime))
+				{
+					ReceivePacket ();
+				}
+				else if (WriteWaitExpired)
+				{
+					Send (new PingreqPacket ());
+				}
+				else if (ReadWaitExpired)
+				{
+					WriteToLog ("MQTT timeout exception");
+				}
+			}
+				
+
 			MQTTPTs = RSrv.GetValues (MQTTPTs);
 			NumberFormatInfo nfi = new NumberFormatInfo ();
 
@@ -370,8 +415,10 @@ namespace Scada.Comm.Devices
 				mqtttp.IsPub = false;
 			}
 
-			Thread.Sleep (ReqParams.Delay);
+			//Thread.Sleep (ReqParams.Delay);
 		}
+
+
 
 
 		public override void OnAddedToCommLine ()
@@ -454,6 +501,9 @@ namespace Scada.Comm.Devices
 			connArgs.Port = Convert.ToInt32 (MQTTSettings.Attributes.GetNamedItem ("Port").Value);
 			connArgs.Username = MQTTSettings.Attributes.GetNamedItem ("UserName").Value;
 			connArgs.Password = MQTTSettings.Attributes.GetNamedItem ("Password").Value;
+			connArgs.Keepalive = TimeSpan.FromSeconds (60);
+			connArgs.ReadTimeout = TimeSpan.FromSeconds (10);
+			connArgs.WriteTimeout = TimeSpan.FromSeconds (10);
 
 			this.Persistence = new InMemoryPersistence ();
 			Transport = new TcpTransport (connArgs.Hostname, connArgs.Port);

@@ -375,6 +375,7 @@ namespace StriderMqtt
 		private void ReceivePacket ()
 		{
 			PacketBase packet = Transport.Read ();
+
 			LastRead = Environment.TickCount;
 
 			HandleReceivedPacket (packet);
