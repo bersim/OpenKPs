@@ -63,6 +63,7 @@ MQTT - является простым сетевым протоколом, ко
 - Секция **MqttSubTopics** - данная секция является родительской для секции **Topic** и предназначена для конфигурации подписок на топики.  
 - Секция **MqttPubTopics** - данная секция является родительской для секции **Topic** и предназначена для конфигурации публикации топиков.  
 - Секция **MqttPubCmds** - данная секция является родительской для секции **Topic** и предназначена для конфигурации публикации команд **Rapid Scada** .  
+- Секция **MqttSubCmds** - данная секция является родительской для секции **Topic** и предназначена для конфигурации подписки на команды поступающие из MQTT брокера в виде строки.  
 
 - Секция **Topic** - данная секция является дочерней для секций **MqttPubTopics** и **MqttSubTopics** и предназначена для конфигурации топика.
 	- Атрибут **TopicName** - данный атрибут должен содержать идентификатор топика в виде адреса **URI**. Этот адрес определяет размещение топика в дереве, описывающем структуру реального объекта.
@@ -80,27 +81,39 @@ MQTT - является простым сетевым протоколом, ко
 	- Атрибут **NDS** - данный атрибут определяет разделитель десятичного разряда для чисел с плавающей точкой. Исользуется для секции  **MqttPubTopics** .  
 		"." - в качестве десятичного разряда будет использован символ "." .  
 		"," - в качестве десятичного разряда будет использован символ "," .  
-	- Атрибут **NumCmd** - данный атрибут должен содержать номер команды из канала управления.  
+	- Атрибут **NumCmd** - данный атрибут должен содержать номер команды из канала управления. Используется в секциях **MqttPubCmds** и **MqttSubCmds** .    
+    - Атрибут **CmdType** - данный атрибут должен содержать тип команды. Используется в секции **MqttSubCmds** . Должен содержать одно из следующих значений:  
+        "St" - формируется стандартная команда управления.  Формат входного значения: "20.02", "20".  
+        "BinHex" - формируется бинарная команда управления. Формат входного значения должен быть в виде строки из HEX символов.  
+        "BinTxt" - формируется бинарная команда управления. Формат входного значения должен быть в виде обычной строки UTF-8. 
+        "Req" - формируется команда внеочередного опроса КП. Входное значение игнорируется. Используется значение атрибута KpNum.  
+    - Атрибут **KpNum** - данный атрибут должен содержать номер КП. Используется в секции **MqttSubCmds** .  
+    - Атрибут **IDUser** - данный атрибут должен содержать идентификатор пользователя из под которого отправляется команада.  Используется в секции **MqttSubCmds** .  
+    - Атрибут **NumCnlCtrl** - данный атрибут должен содержать номер канала управления на который будет отправлена команда. Используется в секции **MqttSubCmds** .  
 
 
-	
 Пример содержания конфигурационного файла для драйвера **KpMQTT** показан ниже:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <DevTemplate>
-  <MqttParams Hostname="iot.eclipse.org" ClientID="KpMQTTmes" Port="1883" UserName="" Password=""/>
-  <RapSrvCnf ServerHost="xxx.xxx.xxx.xxx" ServerPort="10000" ServerUser="ScadaComm" ServerPwd="12345"/>
-  <MqttSubTopics>
-  	<Topic TopicName="/myparam1" QosLevel="0" NumCnl="271"/>
-  	<Topic TopicName="/myparam2" QosLevel="0" NumCnl="272"/>
-  </MqttSubTopics>
-  <MqttPubTopics>
-	<Topic TopicName="/myparam10" QosLevel="0" NumCnl="21" PubBehavior="OnChange" Retain="false" NDS="."/>
-  </MqttPubTopics>
-  <MqttPubCmds>
-    <Topic TopicName="/myparam100" QosLevel="0" NumCmd="1"/>
-  </MqttPubCmds>
+
+    <MqttParams Hostname="iot.eclipse.org" ClientID="KpMQTTrs111" Port="1883" UserName="" Password=""/>
+    <RapSrvCnf ServerHost="xxx.xxx.xxx.xxx" ServerPort="10000" ServerUser="ScadaComm" ServerPwd="12345"/>
+    <MqttSubTopics>
+        <Topic TopicName="/rsparam1" QosLevel="0" NumCnl="600"/>
+    </MqttSubTopics>
+    <MqttPubTopics>
+        <Topic TopicName="/rsparam10" QosLevel="0" NumCnl="600" PubBehavior="OnChange" Retain="true" NDS="."/>
+    </MqttPubTopics>
+    <MqttPubCmds>
+        <Topic TopicName="/rsparam100" QosLevel="0" NumCmd="1"/>
+        <Topic TopicName="/rsparam1000" QosLevel="0" NumCmd="2"/>
+    </MqttPubCmds>
+    <MqttSubCmds>
+        <Topic TopicName="/rsparam10000" QosLevel="0" NumCmd="10" CmdType="St" KPNum="60" IDUser="0" NumCnlCtrl="500"/>
+        <Topic TopicName="/rsparam100000" QosLevel="0" NumCmd="10" CmdType="BinHex" KpNum="60" IDUser="0" NumCnlCtrl="501"/>
+    </MqttSubCmds>
 </DevTemplate>
 ```
 

@@ -13,6 +13,7 @@ using Scada.Client;
 
 namespace Scada.Comm.Devices
 {
+
 	public class KpMQTTLogic : KPLogic
 	{
 		static readonly TimeSpan MaxPollTime = TimeSpan.FromSeconds(0.1);
@@ -41,6 +42,8 @@ namespace Scada.Comm.Devices
 		private RapSrvEx RSrv;
 
 		private SubscribePacket sp;
+
+		private List<MQTTSubCmd> SubCmds;
 
 		bool ReadWaitExpired
 		{
@@ -277,30 +280,61 @@ namespace Scada.Comm.Devices
 			Regex reg = new Regex (@"^[-]?\d+[,.]?\d+$");
 			Regex reg2 = new Regex (@"^[-\d]+$");
 
-			if (reg.IsMatch (pv)) {
 
-				int tagInd = 0;
-				foreach (KPTag kpt in KPTags) {
-					if (kpt.Name == packet.Topic) {
-						pv = pv.Replace ('.', ',');
-						SetCurData (tagInd, Convert.ToDouble (pv), 1);
-						WriteToLog (kpt.CnlNum.ToString ());
-					}
-					tagInd++;
-				}
-
-			} else {
-				if (reg2.IsMatch (pv)) {
-					int tagInd = 0;
-					foreach (KPTag kpt in KPTags) {
-						if (kpt.Name == packet.Topic) {
-							SetCurData (tagInd, Convert.ToDouble (pv), 1);
-							WriteToLog (kpt.CnlNum.ToString ());
+			if (SubCmds.Count > 0) {
+				bool IsResSendCmd;
+				bool IsSendCmd;
+				foreach (MQTTSubCmd mqttcmd in SubCmds) {
+					if (mqttcmd.TopicName == packet.Topic) {
+						if (mqttcmd.CmdType == "St") {
+							if (reg.IsMatch (pv)) {
+								pv = pv.Replace ('.', ',');
+							}
+                            mqttcmd.CmdVal = ScadaUtils.StrToDouble(pv);
+							IsSendCmd = RSrv.SendStandardCommand (mqttcmd.IDUser, mqttcmd.NumCnlCtrl, mqttcmd.CmdVal,out IsResSendCmd);
+							break;
 						}
-						tagInd++;
+						if (mqttcmd.CmdType == "BinTxt") {
+							IsSendCmd = RSrv.SendBinaryCommand (mqttcmd.IDUser, mqttcmd.NumCnlCtrl, packet.Message,out IsResSendCmd);
+							break;
+						}
+						if(mqttcmd.CmdType == "BinHex"){
+							byte[] cmdData;
+							bool IsHexToByte = ScadaUtils.HexToBytes (pv.Trim (),out cmdData);
+							if(IsHexToByte){
+								IsSendCmd = RSrv.SendBinaryCommand (mqttcmd.IDUser, mqttcmd.NumCnlCtrl, cmdData,out IsResSendCmd);
+							}
+							break;
+						}
+						if(mqttcmd.CmdType == "Req"){
+							IsSendCmd = RSrv.SendRequestCommand (mqttcmd.IDUser, mqttcmd.NumCnlCtrl, mqttcmd.KPNum,out IsResSendCmd);
+							break;
+						}
 					}
 				}
 			}
+
+
+			if(KPTags.Length >0){
+				int tagInd = 0;
+				foreach(KPTag kpt in KPTags){
+					if(kpt.Name == packet.Topic){
+						if(reg.IsMatch(pv)){
+							pv = pv.Replace ('.', ',');
+                            SetCurData (tagInd, ScadaUtils.StrToDouble(pv), 1);
+                            WriteToLog(pv);
+							break;
+						}
+						if(reg2.IsMatch(pv)){
+                            SetCurData (tagInd, ScadaUtils.StrToDouble(pv), 1);
+                            WriteToLog(pv);
+                            break;
+						}
+					}
+					tagInd++;
+				}
+			}
+				
 
 			if (packet.QosLevel == MqttQos.ExactlyOnce) {
 				OnQos2PublishReceived (packet);
@@ -310,7 +344,9 @@ namespace Scada.Comm.Devices
 					Send (new PubackPacket () { PacketId = packet.PacketId });
 				}
 			}
+			
 		}
+
 
 		void OnQos2PublishReceived (PublishPacket packet)
 		{
@@ -399,6 +435,7 @@ namespace Scada.Comm.Devices
 			}
 				
 
+
 			MQTTPTs = RSrv.GetValues (MQTTPTs);
 			NumberFormatInfo nfi = new NumberFormatInfo ();
 
@@ -410,7 +447,7 @@ namespace Scada.Comm.Devices
 					Topic = mqtttp.TopicName,
 					QosLevel = mqtttp.QosLevels,
 					Retain = mqtttp.Retain,
-					Message = Encoding.UTF8.GetBytes (mqtttp.Value.ToString (nfi))
+                    Message = Encoding.UTF8.GetBytes (mqtttp.Value.ToString(nfi))
 				});
 				mqtttp.IsPub = false;
 			}
@@ -436,6 +473,7 @@ namespace Scada.Comm.Devices
 			XmlNode MQTTSubTopics = xmlDoc.DocumentElement.SelectSingleNode ("MqttSubTopics");
 			XmlNode MQTTPubTopics = xmlDoc.DocumentElement.SelectSingleNode ("MqttPubTopics");
 			XmlNode MQTTPubCmds = xmlDoc.DocumentElement.SelectSingleNode ("MqttPubCmds");
+			XmlNode MQTTSubCmds = xmlDoc.DocumentElement.SelectSingleNode ("MqttSubCmds");
 			XmlNode RapSrvCnf = xmlDoc.DocumentElement.SelectSingleNode ("RapSrvCnf");
 			XmlNode MQTTSettings = xmlDoc.DocumentElement.SelectSingleNode ("MqttParams");
 
@@ -476,9 +514,10 @@ namespace Scada.Comm.Devices
 			sp = new SubscribePacket ();
 			int i = 0;
 			int spCnt = MQTTSubTopics.ChildNodes.Count;
+			spCnt += MQTTSubCmds.ChildNodes.Count;
 
-			sp.Topics = new string[MQTTSubTopics.ChildNodes.Count];
-			sp.QosLevels = new MqttQos[MQTTSubTopics.ChildNodes.Count];
+			sp.Topics = new string[spCnt];
+			sp.QosLevels = new MqttQos[spCnt];
 	
 			foreach (XmlElement elemGroupElem in MQTTSubTopics.ChildNodes) {
 				sp.Topics [i] = elemGroupElem.GetAttribute ("TopicName");
@@ -494,6 +533,22 @@ namespace Scada.Comm.Devices
 			tagGroups.Add (tagGroup);
 			InitKPTags (tagGroups);
 
+			SubCmds = new List<MQTTSubCmd> ();
+
+			foreach (XmlElement elemGroupElem in MQTTSubCmds.ChildNodes) {
+				sp.Topics [i] = elemGroupElem.GetAttribute ("TopicName");
+				sp.QosLevels [i] = (MqttQos)Convert.ToByte (elemGroupElem.GetAttribute ("QosLevel"));
+				MQTTSubCmd cmd = new MQTTSubCmd () {
+					TopicName = sp.Topics[i],
+					CmdNum = elemGroupElem.GetAttrAsInt ("NumCmd", 0),
+					CmdType = elemGroupElem.GetAttribute ("CmdType"),
+					KPNum = elemGroupElem.GetAttrAsInt("KPNum",0),
+					IDUser = elemGroupElem.GetAttrAsInt("IDUser",0),
+					NumCnlCtrl = elemGroupElem.GetAttrAsInt("NumCnlCtrl",0)
+				};
+				SubCmds.Add (cmd);
+				i++;
+			}
 
 			connArgs = new MqttConnectionArgs ();
 			connArgs.ClientId = MQTTSettings.Attributes.GetNamedItem ("ClientID").Value;
@@ -567,5 +622,17 @@ namespace Scada.Comm.Devices
 			WorkState = WorkStates.Undefined;
 		}
 	}
+	
+
+	
+
+	public class MQTTSubCmd : Command
+	{
+		public string TopicName { get; set;}
+		public int IDUser { get; set;}
+		public string CmdType { get; set;}
+		public int NumCnlCtrl { get; set;} 
+	}
 }
+
 
