@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Globalization;
 using Scada.Data;
+using Scada.Data.Tables;
 using Scada.Data.Models;
 using Scada.Data.Configuration;
 using StriderMqtt;
@@ -283,17 +284,25 @@ namespace Scada.Comm.Devices
 			string pv = Encoding.UTF8.GetString (packet.Message);
 			Regex reg = new Regex (@"^[-]?\d+[,.]?\d+$");
 			Regex reg2 = new Regex (@"^[-\d]+$");
-
-
+            
+            
 			if (SubJSs.Count >0){
 				Engine jsEng = new Engine();
 				foreach(MQTTSubJS mqttjs in SubJSs){
 					if (mqttjs.TopicName == packet.Topic){
+						int[] cnlNums = new int[mqttjs.CnlCnt];
+						SrezTableLight.CnlData[] cnlData = new SrezTableLight.CnlData[mqttjs.CnlCnt];
+						jsEng.SetValue("mqttJS", mqttjs);
 						jsEng.SetValue("InMsg", Encoding.UTF8.GetString(packet.Message));
-						jsEng.SetValue("OutMsg", new List<KPTag>());
+						jsEng.SetValue("cnlNums", cnlNums);
+						jsEng.SetValue("cnlData", cnlData);
+						SrezTableLight.Srez srez = new SrezTableLight.Srez(DateTime.Now,mqttjs.CnlCnt);
+
+						bool sndres;
                         try
 						{
 							jsEng.Execute(mqttjs.JSHandler);
+							bool snd = RSrv.SendSrez(srez, out sndres);
 						}
                         catch
 						{
@@ -301,7 +310,6 @@ namespace Scada.Comm.Devices
 						}
 						break;
 					}
-
 				}
 
 			}
@@ -491,6 +499,7 @@ namespace Scada.Comm.Devices
 			
 			List<TagGroup> tagGroups = new List<TagGroup> ();
 			TagGroup tagGroup = new TagGroup ("GroupMQTT");
+			TagGroup tagGroupJS = new TagGroup("GoupJS");
 
 			XmlDocument xmlDoc = new XmlDocument ();
 			string filename = ReqParams.CmdLine.Trim ();
@@ -543,7 +552,7 @@ namespace Scada.Comm.Devices
 			int spCnt = MQTTSubTopics.ChildNodes.Count;
 			spCnt += MQTTSubCmds.ChildNodes.Count;
 			spCnt += MQTTSubJSs.ChildNodes.Count;
-
+            
 			sp.Topics = new string[spCnt];
 			sp.QosLevels = new MqttQos[spCnt];
 	
@@ -559,7 +568,10 @@ namespace Scada.Comm.Devices
 				i++;
 			}
 			tagGroups.Add (tagGroup);
-			InitKPTags (tagGroups);
+			InitKPTags(tagGroups);
+            
+
+            
 
 			SubCmds = new List<MQTTSubCmd> ();
 
@@ -586,6 +598,7 @@ namespace Scada.Comm.Devices
 				MQTTSubJS msjs = new MQTTSubJS()
 				{
 					TopicName = sp.Topics[i],
+					CnlCnt = elemGroupElem.GetAttrAsInt("CnlCnt", 1),
 					JSHandlerPath = elemGroupElem.GetAttrAsString("JSHandlerPath", "")
 				};
 				if (msjs.LoadJSHandler())
@@ -594,6 +607,9 @@ namespace Scada.Comm.Devices
 					i++;
 				}
 			}
+
+
+
             
 			connArgs = new MqttConnectionArgs ();
 			connArgs.ClientId = MQTTSettings.Attributes.GetNamedItem ("ClientID").Value;
@@ -682,6 +698,7 @@ namespace Scada.Comm.Devices
 		public string TopicName { get; set; }
 		public string JSHandlerPath { get; set; }
 		public string JSHandler { get; private set; }
+		public int CnlCnt { get; set; }
 
         public bool LoadJSHandler()
 		{
