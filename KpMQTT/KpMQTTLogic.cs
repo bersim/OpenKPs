@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Threading;
 using System.Text;
@@ -10,6 +11,7 @@ using Scada.Data.Models;
 using Scada.Data.Configuration;
 using StriderMqtt;
 using Scada.Client;
+using Jint;
 
 namespace Scada.Comm.Devices
 {
@@ -44,6 +46,8 @@ namespace Scada.Comm.Devices
 		private SubscribePacket sp;
 
 		private List<MQTTSubCmd> SubCmds;
+
+		private List<MQTTSubJS> SubJSs;
 
 		bool ReadWaitExpired
 		{
@@ -281,6 +285,28 @@ namespace Scada.Comm.Devices
 			Regex reg2 = new Regex (@"^[-\d]+$");
 
 
+			if (SubJSs.Count >0){
+				Engine jsEng = new Engine();
+				foreach(MQTTSubJS mqttjs in SubJSs){
+					if (mqttjs.TopicName == packet.Topic){
+						jsEng.SetValue("InMsg", Encoding.UTF8.GetString(packet.Message));
+						jsEng.SetValue("OutMsg", new List<KPTag>());
+                        try
+						{
+							jsEng.Execute(mqttjs.JSHandler);
+						}
+                        catch
+						{
+							WriteToLog(Localization.UseRussian ? "Ошибка обработки JS" : "Error execute JS");
+						}
+						break;
+					}
+
+				}
+
+			}
+
+
 			if (SubCmds.Count > 0) {
 				bool IsResSendCmd;
 				bool IsSendCmd;
@@ -474,6 +500,7 @@ namespace Scada.Comm.Devices
 			XmlNode MQTTPubTopics = xmlDoc.DocumentElement.SelectSingleNode ("MqttPubTopics");
 			XmlNode MQTTPubCmds = xmlDoc.DocumentElement.SelectSingleNode ("MqttPubCmds");
 			XmlNode MQTTSubCmds = xmlDoc.DocumentElement.SelectSingleNode ("MqttSubCmds");
+			XmlNode MQTTSubJSs = xmlDoc.DocumentElement.SelectSingleNode("MqttSubJSs");
 			XmlNode RapSrvCnf = xmlDoc.DocumentElement.SelectSingleNode ("RapSrvCnf");
 			XmlNode MQTTSettings = xmlDoc.DocumentElement.SelectSingleNode ("MqttParams");
 
@@ -515,6 +542,7 @@ namespace Scada.Comm.Devices
 			int i = 0;
 			int spCnt = MQTTSubTopics.ChildNodes.Count;
 			spCnt += MQTTSubCmds.ChildNodes.Count;
+			spCnt += MQTTSubJSs.ChildNodes.Count;
 
 			sp.Topics = new string[spCnt];
 			sp.QosLevels = new MqttQos[spCnt];
@@ -550,9 +578,26 @@ namespace Scada.Comm.Devices
 				i++;
 			}
 
+			SubJSs = new List<MQTTSubJS>();
+
+			foreach(XmlElement elemGroupElem in MQTTSubJSs.ChildNodes){
+				sp.Topics[i] = elemGroupElem.GetAttribute("TopicName");
+				sp.QosLevels[i] = (MqttQos)Convert.ToByte(elemGroupElem.GetAttribute("QosLevel"));
+				MQTTSubJS msjs = new MQTTSubJS()
+				{
+					TopicName = sp.Topics[i],
+					JSHandlerPath = elemGroupElem.GetAttrAsString("JSHandlerPath", "")
+				};
+				if (msjs.LoadJSHandler())
+				{
+					SubJSs.Add(msjs);
+					i++;
+				}
+			}
+            
 			connArgs = new MqttConnectionArgs ();
 			connArgs.ClientId = MQTTSettings.Attributes.GetNamedItem ("ClientID").Value;
-			connArgs.Hostname = MQTTSettings.Attributes.GetNamedItem ("Hostname").Value;
+			connArgs.Hostname = MQTTSettings.Attributes.GetNamedItem("Hostname").Value;
 			connArgs.Port = Convert.ToInt32 (MQTTSettings.Attributes.GetNamedItem ("Port").Value);
 			connArgs.Username = MQTTSettings.Attributes.GetNamedItem ("UserName").Value;
 			connArgs.Password = MQTTSettings.Attributes.GetNamedItem ("Password").Value;
@@ -571,9 +616,7 @@ namespace Scada.Comm.Devices
 
 			if(sp.Topics.Length > 0)
 				Subscribe (sp);
-
-
-
+         
 			WriteToLog (Localization.UseRussian ? "Инициализация линии связи выполнена успешно." : "Communication line initialized successfully");
 
 
@@ -632,6 +675,32 @@ namespace Scada.Comm.Devices
 		public int IDUser { get; set;}
 		public string CmdType { get; set;}
 		public int NumCnlCtrl { get; set;} 
+	}
+
+	public class MQTTSubJS
+	{
+		public string TopicName { get; set; }
+		public string JSHandlerPath { get; set; }
+		public string JSHandler { get; private set; }
+
+        public bool LoadJSHandler()
+		{
+			bool IsJSLoad = false;
+			if(JSHandlerPath != "")
+			{
+				try
+				{
+					StreamReader sr = new StreamReader(JSHandlerPath);
+					JSHandler = sr.ReadToEnd();
+					IsJSLoad = true;
+				}
+                catch
+				{
+					IsJSLoad = false;
+				}
+			}
+			return IsJSLoad;
+		}
 	}
 }
 

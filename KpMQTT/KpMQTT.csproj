@@ -30,14 +30,17 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
+    <Reference Include="Jint">
+      <HintPath>bin\Debug\Jint.dll</HintPath>
+    </Reference>
     <Reference Include="Log">
-      <HintPath>..\..\RS551\Log\Log\bin\Debug\Log.dll</HintPath>
+      <HintPath>..\..\RS553\Log\Log\bin\Debug\Log.dll</HintPath>
     </Reference>
     <Reference Include="ScadaCommCommon">
-      <HintPath>..\..\RS551\ScadaComm\ScadaCommCommon\bin\Debug\ScadaCommCommon.dll</HintPath>
+      <HintPath>..\..\RS553\ScadaComm\ScadaCommMono\bin\Debug\ScadaCommCommon.dll</HintPath>
     </Reference>
     <Reference Include="ScadaData">
-      <HintPath>..\..\RS551\ScadaData\ScadaData\bin\Debug\ScadaData.dll</HintPath>
+      <HintPath>..\..\RS553\ScadaData\ScadaData\bin\Debug\ScadaData.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
