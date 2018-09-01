@@ -288,21 +288,44 @@ namespace Scada.Comm.Devices
             
 			if (SubJSs.Count >0){
 				Engine jsEng = new Engine();
+
 				foreach(MQTTSubJS mqttjs in SubJSs){
 					if (mqttjs.TopicName == packet.Topic){
-						int[] cnlNums = new int[mqttjs.CnlCnt];
-						SrezTableLight.CnlData[] cnlData = new SrezTableLight.CnlData[mqttjs.CnlCnt];
+						
+						SrezTableLight.Srez srez = new SrezTableLight.Srez(DateTime.Now, mqttjs.CnlCnt);
+						List<JSVal> jsvals = new List<JSVal>();
+						for (int i = 0; i < srez.CnlNums.Length;i++)
+						{
+							JSVal jsval = new JSVal();
+                            
+							jsvals.Add(jsval);
+						}
+                  
 						jsEng.SetValue("mqttJS", mqttjs);
 						jsEng.SetValue("InMsg", Encoding.UTF8.GetString(packet.Message));
-						jsEng.SetValue("cnlNums", cnlNums);
-						jsEng.SetValue("cnlData", cnlData);
-						SrezTableLight.Srez srez = new SrezTableLight.Srez(DateTime.Now,mqttjs.CnlCnt);
-
+						jsEng.SetValue("jsvals", jsvals);
+						jsEng.SetValue("mylog", new Action<string>(WriteToLog));
+                  
 						bool sndres;
                         try
 						{
 							jsEng.Execute(mqttjs.JSHandler);
+							int i = 0;
+	                     
+                            foreach(JSVal jsvl in jsvals)
+							{
+								
+								SrezTableLight.CnlData cnlData = new SrezTableLight.CnlData();
+								cnlData.Stat = jsvl.Stat;
+								cnlData.Val = jsvl.Val;
+								srez.CnlNums[i] = jsvl.CnlNum;
+								srez.SetCnlData(jsvl.CnlNum,cnlData);
+								i++;
+
+							}
+
 							bool snd = RSrv.SendSrez(srez, out sndres);
+
 						}
                         catch
 						{
@@ -605,8 +628,11 @@ namespace Scada.Comm.Devices
 				{
 					SubJSs.Add(msjs);
 					i++;
+
 				}
+
 			}
+
 
 
 
@@ -707,6 +733,7 @@ namespace Scada.Comm.Devices
 			{
 				try
 				{
+					
 					StreamReader sr = new StreamReader(JSHandlerPath);
 					JSHandler = sr.ReadToEnd();
 					IsJSLoad = true;
@@ -718,6 +745,13 @@ namespace Scada.Comm.Devices
 			}
 			return IsJSLoad;
 		}
+	}
+
+    public class JSVal
+	{
+		public int CnlNum { get; set; }
+		public int Stat { get; set; }
+		public double Val { get; set; }
 	}
 }
 
